@@ -1,0 +1,14 @@
+[package]
+name = "custom_derive"
+version = "0.0.1"
+edition = "2018"
+
+[lib]
+name = "custom_derive"
+proc-macro = true
+
+
+[dependencies]
+syn = { version = "2.0.76", features = ["full"] }
+quote = "1.0.37"
+proc-macro2 = "1.0.86"
