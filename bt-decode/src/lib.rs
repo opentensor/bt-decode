@@ -49,21 +49,9 @@ mod bt_decode {
         pub placeholder2: u8,
     }
 
-    // #[pydecode]
+    #[pydecode]
     #[pymethods]
-    impl AxonInfo {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            AxonInfo::decode(&mut &encoded[..]).expect("Failed to decode AxonInfo")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<AxonInfo> {
-            Vec::<AxonInfo>::decode(&mut &encoded[..]).expect("Failed to decode Vec<AxonInfo>")
-        }
-    }
+    impl AxonInfo {}
 
     #[pyclass(name = "PrometheusInfo", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -80,22 +68,9 @@ mod bt_decode {
         pub ip_type: u8,
     }
 
-    // #[pydecode]
+    #[pydecode]
     #[pymethods]
-    impl PrometheusInfo {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            PrometheusInfo::decode(&mut &encoded[..]).expect("Failed to decode PrometheusInfo")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<PrometheusInfo> {
-            Vec::<PrometheusInfo>::decode(&mut &encoded[..])
-                .expect("Failed to decode Vec<PrometheusInfo>")
-        }
-    }
+    impl PrometheusInfo {}
 
     #[pyclass(name = "NeuronInfo", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -122,20 +97,9 @@ mod bt_decode {
         pruning_score: Compact<u16>,
     }
 
+    #[pydecode]
     #[pymethods]
-    impl NeuronInfo {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            NeuronInfo::decode(&mut &encoded[..]).expect("Failed to decode NeuronInfo")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<NeuronInfo> {
-            Vec::<NeuronInfo>::decode(&mut &encoded[..]).expect("Failed to decode Vec<NeuronInfo>")
-        }
-    }
+    impl NeuronInfo {}
 
     #[pyclass(name = "NeuronInfoLite", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -161,21 +125,9 @@ mod bt_decode {
         pruning_score: Compact<u16>,
     }
 
+    #[pydecode]
     #[pymethods]
-    impl NeuronInfoLite {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            NeuronInfoLite::decode(&mut &encoded[..]).expect("Failed to decode NeuronInfoLite")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<NeuronInfoLite> {
-            Vec::<NeuronInfoLite>::decode(&mut &encoded[..])
-                .expect("Failed to decode Vec<NeuronInfoLite>")
-        }
-    }
+    impl NeuronInfoLite {}
 
     #[pyclass(name = "SubnetIdentity", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -187,21 +139,9 @@ mod bt_decode {
         subnet_contact: Vec<u8>,
     }
 
+    #[pydecode]
     #[pymethods]
-    impl SubnetIdentity {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            SubnetIdentity::decode(&mut &encoded[..]).expect("Failed to decode SubnetIdentity")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<SubnetIdentity> {
-            Vec::<SubnetIdentity>::decode(&mut &encoded[..])
-                .expect("Failed to decode Vec<SubnetIdentity>")
-        }
-    }
+    impl SubnetIdentity {}
 
     #[pyclass(name = "SubnetInfo", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -226,24 +166,14 @@ mod bt_decode {
         owner: AccountId,
     }
 
+    #[pydecode]
     #[pymethods]
     impl SubnetInfo {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            SubnetInfo::decode(&mut &encoded[..]).expect("Failed to decode SubnetInfo")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<SubnetInfo> {
-            Vec::<SubnetInfo>::decode(&mut &encoded[..]).expect("Failed to decode Vec<SubnetInfo>")
-        }
-
         #[pyo3(name = "decode_vec_option")]
         #[staticmethod]
         fn py_decode_vec_option(encoded: &[u8]) -> Vec<Option<SubnetInfo>> {
-            Vec::<Option<SubnetInfo>>::decode(&mut &encoded[..]).expect("Failed to decode Vec<Option<SubnetInfo>>")
+            Vec::<Option<SubnetInfo>>::decode(&mut &encoded[..])
+                .expect("Failed to decode Vec<Option<SubnetInfo>>")
         }
     }
 
@@ -271,25 +201,14 @@ mod bt_decode {
         identity: Option<SubnetIdentity>,
     }
 
+    #[pydecode]
     #[pymethods]
     impl SubnetInfoV2 {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            SubnetInfoV2::decode(&mut &encoded[..]).expect("Failed to decode SubnetInfoV2")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<SubnetInfoV2> {
-            Vec::<SubnetInfoV2>::decode(&mut &encoded[..])
-                .expect("Failed to decode Vec<SubnetInfoV2>")
-        }
-
         #[pyo3(name = "decode_vec_option")]
         #[staticmethod]
         fn py_decode_vec_option(encoded: &[u8]) -> Vec<Option<SubnetInfoV2>> {
-            Vec::<Option<SubnetInfoV2>>::decode(&mut &encoded[..]).expect("Failed to decode Vec<Option<SubnetInfoV2>>")
+            Vec::<Option<SubnetInfoV2>>::decode(&mut &encoded[..])
+                .expect("Failed to decode Vec<Option<SubnetInfoV2>>")
         }
     }
 
@@ -325,22 +244,9 @@ mod bt_decode {
         liquid_alpha_enabled: bool,
     }
 
+    #[pydecode]
     #[pymethods]
-    impl SubnetHyperparams {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            SubnetHyperparams::decode(&mut &encoded[..])
-                .expect("Failed to decode SubnetHyperparams")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<SubnetHyperparams> {
-            Vec::<SubnetHyperparams>::decode(&mut &encoded[..])
-                .expect("Failed to decode Vec<SubnetHyperparams>")
-        }
-    }
+    impl SubnetHyperparams {}
 
     #[pyclass(get_all)]
     #[derive(Decode, Encode, Clone, Debug)]
@@ -350,20 +256,9 @@ mod bt_decode {
         stake: Compact<u64>,
     }
 
+    #[pydecode]
     #[pymethods]
     impl StakeInfo {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            StakeInfo::decode(&mut &encoded[..]).expect("Failed to decode StakeInfo")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<StakeInfo> {
-            Vec::<StakeInfo>::decode(&mut &encoded[..]).expect("Failed to decode Vec<StakeInfo>")
-        }
-
         #[pyo3(name = "decode_vec_tuple_vec")]
         #[staticmethod]
         fn py_decode_vec_tuple_vec(encoded: &[u8]) -> Vec<(AccountId, Vec<StakeInfo>)> {
@@ -385,21 +280,9 @@ mod bt_decode {
         total_daily_return: Compact<u64>, // Delegators current daily return
     }
 
+    #[pydecode]
     #[pymethods]
     impl DelegateInfo {
-        #[pyo3(name = "decode")]
-        #[staticmethod]
-        fn py_decode(encoded: &[u8]) -> Self {
-            DelegateInfo::decode(&mut &encoded[..]).expect("Failed to decode DelegateInfo")
-        }
-
-        #[pyo3(name = "decode_vec")]
-        #[staticmethod]
-        fn py_decode_vec(encoded: &[u8]) -> Vec<DelegateInfo> {
-            Vec::<DelegateInfo>::decode(&mut &encoded[..])
-                .expect("Failed to decode Vec<DelegateInfo>")
-        }
-
         #[pyo3(name = "decode_delegated")]
         #[staticmethod]
         fn py_decode_delegated(encoded: &[u8]) -> Vec<(DelegateInfo, Compact<u64>)> {
