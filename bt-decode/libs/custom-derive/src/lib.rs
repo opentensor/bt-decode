@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{quote, ToTokens};
-use syn::{parse::Nothing, parse2, parse_quote, Error, ImplItem, ItemImpl, Result};
+use quote::quote;
+use syn::{parse::Nothing, parse2, parse_quote, Error, ItemImpl, Result};
 
 /// Automatically adds `py_decode` and `py_decode_vec` methods to a struct's inherent impl block,
 /// making them available as Python methods via `pyo3`.
