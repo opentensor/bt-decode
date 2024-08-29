@@ -45,6 +45,94 @@ delegated_info: List[Tuple[DelegateInfo, int]] = DelegateInfo.decode_delegated(
 ))
 ```
 
+### NeuronInfo
+#### get_neuron
+```python
+import bittensor
+from bt_decode import NeuronInfo
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+NETUID = 1
+UID = 0
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="NeuronInfoRuntimeApi",
+    method="get_neuron",
+    params=[NETUID, UID]
+)
+# Decode scale-encoded NeuronInfo
+neuron: NeuronInfo = NeuronInfo.decode(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+
+#### get_neurons
+```python
+import bittensor
+from bt_decode import NeuronInfo
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+NETUID = 1
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="NeuronInfoRuntimeApi",
+    method="get_neurons",
+    params=[NETUID]
+)
+# Decode scale-encoded NeuronInfo
+neurons: List[NeuronInfo] = NeuronInfo.decode(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+
+### NeuronInfoLite
+#### get_neuron
+```python
+import bittensor
+from bt_decode import NeuronInfoLite
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+NETUID = 1
+UID = 0
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="NeuronInfoRuntimeApi",
+    method="get_neuron_lite",
+    params=[NETUID, UID]
+)
+# Decode scale-encoded NeuronInfoLite
+neuron_lite: NeuronInfoLite = NeuronInfoLite.decode(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+
+#### get_neurons_lite
+```python
+import bittensor
+from bt_decode import NeuronInfoLite
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+NETUID = 1
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="NeuronInfoRuntimeApi",
+    method="get_neurons_lite",
+    params=[NETUID]
+)
+# Decode scale-encoded NeuronInfoLite
+neurons_lite: List[NeuronInfoLite] = NeuronInfoLite.decode(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+
 ### StakeInfo
 #### get_stake_info_for_coldkey
 ```python
@@ -92,6 +180,69 @@ hex_bytes_result = sub.query_runtime_api(
 )
 # Decode scale-encoded (AccountId, StakeInfo)
 stake_info: List[Tuple[bytes, List["StakeInfo"]]] = StakeInfo.decode_vec_tuple_vec(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+### SubnetInfo
+#### get_subnet_info
+```python
+import bittensor
+from bt_decode import SubnetInfo
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+NETUID = 1
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="SubnetInfoRuntimeApi",
+    method="get_subnet_info",
+    params=[NETUID]
+)
+# Decode scale-encoded SubnetInfo
+subnet_info: SubnetInfo = SubnetInfo.decode(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+
+#### get_subnets_info
+```python
+import bittensor
+from bt_decode import SubnetInfo
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="SubnetInfoRuntimeApi",
+    method="get_subnets_info",
+    params=[ ]
+)
+# Decode scale-encoded Optional[SubnetInfo]
+subnets_info: List[Optional[SubnetInfo]] = SubnetInfo.decode_vec(
+    bytes.fromhex(
+        hex_bytes_result
+))
+```
+
+### SubnetHyperparameters
+#### get_subnet_info
+```python
+import bittensor
+from bt_decode import SubnetHyperparameters
+
+# Setup subtensor connection
+subtensor = bittensor.subtensor()
+NETUID = 1
+# Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="SubnetInfoRuntimeApi",
+    method="get_subnet_hyperparams",
+    params=[NETUID]
+)
+# Decode scale-encoded SubnetHyperparameters
+subnet_hyper_params: SubnetHyperparameters = SubnetHyperparameters.decode(
     bytes.fromhex(
         hex_bytes_result
 ))
