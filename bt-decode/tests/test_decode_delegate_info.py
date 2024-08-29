@@ -20,6 +20,10 @@ TEST_DELEGATE_INFO_HEX = {
 
 FIELD_FIXES: Dict[str, Callable] = {
     # None
+    "delegate_ss58": lambda x: bittensor.u8_key_to_ss58(x),
+    "owner_ss58": lambda x: bittensor.u8_key_to_ss58(x),
+    "take": lambda x: bittensor.U16_NORMALIZED_FLOAT(x),
+    "nominators": lambda x: [(bittensor.u8_key_to_ss58(e[0]), e[1]) for e in x],
 }
 fix_field = lambda key, value, parent_key=None: fix_field_fixes(
     FIELD_FIXES, key, value, parent_key
@@ -27,6 +31,7 @@ fix_field = lambda key, value, parent_key=None: fix_field_fixes(
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     # None
+    "delegate_ss58": "hotkey_ss58",
 }
 
 py_getattr = lambda obj, attr, parent_name=None: py_getattr_fixes(
