@@ -3,7 +3,7 @@ name = "bt-decode"
 version = "0.0.1"
 description = "A wrapper around the scale-codec crate for fast scale-decoding of Bittensor data structures."
 readme = "README.md"
-license = {text = "MIT License"}
+license = "MIT"
 keywords = ["substrate", "scale", "codec", "bittensor"]
 
 dependencies = ["toml==0.10.0"]
