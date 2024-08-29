@@ -330,7 +330,7 @@ mod bt_decode {
         }
     }
 
-    #[pyclass]
+    #[pyclass(get_all)]
     #[derive(Decode, Encode, Clone, Debug)]
     struct StakeInfo {
         hotkey: AccountId,
@@ -360,7 +360,7 @@ mod bt_decode {
         }
     }
 
-    #[pyclass]
+    #[pyclass(get_all)]
     #[derive(Decode, Encode, Clone, Debug)]
     struct DelegateInfo {
         delegate_ss58: AccountId,
