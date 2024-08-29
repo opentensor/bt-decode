@@ -239,6 +239,12 @@ mod bt_decode {
         fn py_decode_vec(encoded: &[u8]) -> Vec<SubnetInfo> {
             Vec::<SubnetInfo>::decode(&mut &encoded[..]).expect("Failed to decode Vec<SubnetInfo>")
         }
+
+        #[pyo3(name = "decode_vec_option")]
+        #[staticmethod]
+        fn py_decode_vec_option(encoded: &[u8]) -> Vec<Option<SubnetInfo>> {
+            Vec::<Option<SubnetInfo>>::decode(&mut &encoded[..]).expect("Failed to decode Vec<Option<SubnetInfo>>")
+        }
     }
 
     #[pyclass(name = "SubnetInfoV2", get_all)]
@@ -278,6 +284,12 @@ mod bt_decode {
         fn py_decode_vec(encoded: &[u8]) -> Vec<SubnetInfoV2> {
             Vec::<SubnetInfoV2>::decode(&mut &encoded[..])
                 .expect("Failed to decode Vec<SubnetInfoV2>")
+        }
+
+        #[pyo3(name = "decode_vec_option")]
+        #[staticmethod]
+        fn py_decode_vec_option(encoded: &[u8]) -> Vec<Option<SubnetInfoV2>> {
+            Vec::<Option<SubnetInfoV2>>::decode(&mut &encoded[..]).expect("Failed to decode Vec<Option<SubnetInfoV2>>")
         }
     }
 

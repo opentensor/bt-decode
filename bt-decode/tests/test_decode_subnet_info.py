@@ -14,7 +14,7 @@ from . import (
 
 TEST_SUBNET_INFO_HEX = {
     "normal": "0828feff010013ffffffffffffffff214e010104feff0300c8010401040d03a1050000c28ff4070398b6d54370c07a546ab0bab5ca9847eb5890ada1bda127633e607097ad4517dd2ca0f010",
-    # "vec normal": lambda : get_file_bytes("tests/subnet_info.hex"),
+    "vec option normal": lambda: get_file_bytes("tests/subnets_info.hex"),
 }
 
 
@@ -81,3 +81,55 @@ class TestDecodeSubnetInfo(unittest.TestCase):
                     )
 
         self.assertGreater(attr_count, 0, "No attributes found")
+
+    def test_decode_vec_option_no_errors(self):
+        _ = bt_decode.SubnetInfo.decode_vec_option(
+            TEST_SUBNET_INFO_HEX["vec option normal"]()
+        )
+
+    def test_decode_vec_option_matches_python_impl(self):
+        subnet_info_list: bt_decode.SubnetInfo = bt_decode.SubnetInfo.decode_vec_option(
+            TEST_SUBNET_INFO_HEX["vec option normal"]()
+        )
+
+        subnet_info_list_py = (
+            bittensor.SubnetInfo.list_from_vec_u8(  # Option specified internally
+                list(TEST_SUBNET_INFO_HEX["vec option normal"]())
+            )
+        )
+
+        for subnet_info, subnet_info_py in zip(subnet_info_list, subnet_info_list_py):
+            if subnet_info is None:
+                self.assertIsNone(subnet_info_py, "None does not match")
+                continue
+
+            attr_count = 0
+            for attr in dir(subnet_info):
+                if not attr.startswith("__") and not callable(
+                    getattr(subnet_info, attr)
+                ):
+                    attr_count += 1
+
+                    attr_py = py_getattr(subnet_info_py, attr)
+                    if dataclasses.is_dataclass(attr_py):
+                        attr_rs = getattr(subnet_info, attr)
+
+                        for sub_attr in dir(attr_rs):
+                            if not sub_attr.startswith("__") and not callable(
+                                getattr(attr_rs, sub_attr)
+                            ):
+                                self.assertEqual(
+                                    fix_field(
+                                        sub_attr, getattr(attr_rs, sub_attr), attr
+                                    ),
+                                    py_getattr(attr_py, sub_attr),
+                                    f"Attribute {attr}.{sub_attr} does not match",
+                                )
+                    else:
+                        self.assertEqual(
+                            fix_field(attr, getattr(subnet_info, attr)),
+                            py_getattr(subnet_info_py, attr),
+                            f"Attribute {attr} does not match",
+                        )
+
+            self.assertGreater(attr_count, 0, "No attributes found")

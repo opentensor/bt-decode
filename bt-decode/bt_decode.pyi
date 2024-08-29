@@ -113,6 +113,9 @@ class SubnetInfo:
     @staticmethod
     def decode_vec(encoded: bytes) -> List["SubnetInfo"]:
         pass
+    @staticmethod
+    def decode_vec_option(encoded: bytes) -> List[Optional["SubnetInfo"]]:
+        pass
 
 class SubnetInfoV2:
     netuid: int
@@ -140,6 +143,9 @@ class SubnetInfoV2:
         pass
     @staticmethod
     def decode_vec(encoded: bytes) -> List["SubnetInfoV2"]:
+        pass
+    @staticmethod
+    def decode_vec_option(encoded: bytes) -> List[Optional["SubnetInfoV2"]]:
         pass
 
 class SubnetHyperparameters:
