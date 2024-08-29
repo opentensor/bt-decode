@@ -73,8 +73,11 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
             list(bytes.fromhex(TEST_NEURON_INFO_LITE_HEX["normal"]))
         )
 
+        attr_count = 0
         for attr in dir(neuron_info):
             if not attr.startswith("__") and not callable(getattr(neuron_info, attr)):
+                attr_count += 1
+
                 attr_py = py_getattr(neuron_info_py, attr)
                 if dataclasses.is_dataclass(attr_py):
                     attr_rs = getattr(neuron_info, attr)
@@ -94,6 +97,8 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
                         py_getattr(neuron_info_py, attr),
                         f"Attribute {attr} does not match",
                     )
+
+        self.assertGreater(attr_count, 0, "No attributes found")
 
     def test_decode_vec_no_errors(self):
         _ = bt_decode.NeuronInfoLite.decode_vec(
@@ -114,10 +119,12 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
         )
 
         for neuron_info, neuron_info_py in zip(neurons_info, neurons_info_py):
+            attr_count = 0
             for attr in dir(neuron_info):
                 if not attr.startswith("__") and not callable(
                     getattr(neuron_info, attr)
                 ):
+                    attr_count += 1
                     attr_py = py_getattr(neuron_info_py, attr)
                     if dataclasses.is_dataclass(attr_py):
                         attr_rs = getattr(neuron_info, attr)
@@ -140,6 +147,8 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
                             f"Attribute {attr} does not match",
                         )
 
+            self.assertGreater(attr_count, 0, "No attributes found")
+
 
 class TestDecodeNeuronInfo(unittest.TestCase):
     def test_decode_no_errors(self):
@@ -154,8 +163,11 @@ class TestDecodeNeuronInfo(unittest.TestCase):
             list(bytes.fromhex(TEST_NEURON_INFO_HEX["normal"]))
         )
 
+        attr_count = 0
         for attr in dir(neuron_info):
             if not attr.startswith("__") and not callable(getattr(neuron_info, attr)):
+                attr_count += 1
+
                 attr_py = py_getattr(neuron_info_py, attr)
                 if dataclasses.is_dataclass(attr_py):
                     attr_rs = getattr(neuron_info, attr)
@@ -176,6 +188,8 @@ class TestDecodeNeuronInfo(unittest.TestCase):
                         f"Attribute {attr} does not match",
                     )
 
+        self.assertGreater(attr_count, 0, "No attributes found")
+
     def test_decode_vec_no_errors(self):
         _ = bt_decode.NeuronInfo.decode_vec(TEST_NEURON_INFO_HEX["vec normal"]())
 
@@ -191,10 +205,14 @@ class TestDecodeNeuronInfo(unittest.TestCase):
         )
 
         for neuron_info, neuron_info_py in zip(neurons_info, neurons_info_py):
+            attr_count = 0
+
             for attr in dir(neuron_info):
                 if not attr.startswith("__") and not callable(
                     getattr(neuron_info, attr)
                 ):
+                    attr_count += 1
+
                     attr_py = py_getattr(neuron_info_py, attr)
                     if dataclasses.is_dataclass(attr_py):
                         attr_rs = getattr(neuron_info, attr)
@@ -216,3 +234,5 @@ class TestDecodeNeuronInfo(unittest.TestCase):
                             py_getattr(neuron_info_py, attr),
                             f"Attribute {attr} does not match",
                         )
+
+            self.assertGreater(attr_count, 0, "No attributes found")

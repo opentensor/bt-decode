@@ -186,15 +186,12 @@ class StakeInfo:
     @staticmethod
     def decode(encoded: bytes) -> "StakeInfo":
         pass
-
     @staticmethod
     def decode_vec(encoded: bytes) -> List["StakeInfo"]:
         pass
-
     @staticmethod
     def decode_vec_tuple_vec(encoded: bytes) -> List[Tuple[str, List["StakeInfo"]]]:
         pass
-    
 
 class DelegateInfo:
     delegate_ss58: bytes
@@ -212,7 +209,6 @@ class DelegateInfo:
     @staticmethod
     def decode_vec(encoded: bytes) -> List["DelegateInfo"]:
         pass
-
     @staticmethod
     def decode_delegated(encoded: bytes) -> List[Tuple["DelegateInfo", int]]:
         pass

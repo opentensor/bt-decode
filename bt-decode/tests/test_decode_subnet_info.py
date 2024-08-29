@@ -55,8 +55,11 @@ class TestDecodeSubnetInfo(unittest.TestCase):
             list(bytes.fromhex(TEST_SUBNET_INFO_HEX["normal"]))
         )
 
+        attr_count = 0
         for attr in dir(subnet_info):
             if not attr.startswith("__") and not callable(getattr(subnet_info, attr)):
+                attr_count += 1
+
                 attr_py = py_getattr(subnet_info_py, attr)
                 if dataclasses.is_dataclass(attr_py):
                     attr_rs = getattr(subnet_info, attr)
@@ -76,3 +79,5 @@ class TestDecodeSubnetInfo(unittest.TestCase):
                         py_getattr(subnet_info_py, attr),
                         f"Attribute {attr} does not match",
                     )
+
+        self.assertGreater(attr_count, 0, "No attributes found")

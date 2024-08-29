@@ -49,8 +49,11 @@ class TestDecodeSubnetHyperparameters(unittest.TestCase):
             list(bytes.fromhex(TEST_SUBNET_HYP_HEX["normal"]))
         )
 
+        attr_count = 0
         for attr in dir(subnet_hyp):
             if not attr.startswith("__") and not callable(getattr(subnet_hyp, attr)):
+                attr_count += 1
+
                 attr_py = py_getattr(subnet_hyp_py, attr)
                 if dataclasses.is_dataclass(attr_py):
                     attr_rs = getattr(subnet_hyp, attr)
@@ -70,3 +73,5 @@ class TestDecodeSubnetHyperparameters(unittest.TestCase):
                         py_getattr(subnet_hyp_py, attr),
                         f"Attribute {attr} does not match",
                     )
+
+        self.assertGreater(attr_count, 0, "No attributes found")
