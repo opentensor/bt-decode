@@ -20,6 +20,7 @@ TEST_STAKE_INFO_HEX = {
 
 FIELD_FIXES: Dict[str, Callable] = {
     "coldkey": lambda x: bittensor.u8_key_to_ss58(x),
+    "hotkey": lambda x: bittensor.u8_key_to_ss58(x),
 }
 fix_field = lambda key, value, parent_key=None: fix_field_fixes(
     FIELD_FIXES, key, value, parent_key
@@ -27,6 +28,8 @@ fix_field = lambda key, value, parent_key=None: fix_field_fixes(
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     # None
+    "coldkey": "coldkey_ss58",
+    "hotkey": "hotkey_ss58",
 }
 
 py_getattr = lambda obj, attr, parent_name=None: py_getattr_fixes(
