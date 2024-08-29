@@ -14,7 +14,7 @@ from . import (
 
 TEST_DELEGATE_INFO_HEX = {
     "delegated normal": lambda: get_file_bytes("tests/delegated_info.hex"),
-    # "vec normal": lambda : get_file_bytes("tests/delegate_info.hex"),
+    "vec normal": lambda : get_file_bytes("tests/delegates_info.hex"),
 }
 
 
@@ -66,6 +66,51 @@ class TestDecodeDelegateInfo(unittest.TestCase):
                             ):
                                 self.assertEqual(
                                     fix_field(sub_attr, getattr(attr_rs, sub_attr), attr),
+                                    py_getattr(attr_py, sub_attr),
+                                    f"Attribute {attr}.{sub_attr} does not match",
+                                )
+                    else:
+                        self.assertEqual(
+                            fix_field(attr, getattr(delegate_info, attr)),
+                            py_getattr(delegate_info_py, attr),
+                            f"Attribute {attr} does not match",
+                        )
+
+    def test_decode_vec_no_errors(self):
+        _ = bt_decode.DelegateInfo.decode_vec(
+            TEST_DELEGATE_INFO_HEX["vec normal"]()
+        )
+
+    def test_decode_vec_matches_python_impl(self):
+        delegates_info: List[
+            bt_decode.DelegateInfo
+        ] = bt_decode.DelegateInfo.decode_vec(
+            TEST_DELEGATE_INFO_HEX["vec normal"]()
+        )
+
+        delegates_info_py: List[
+            bittensor.DelegateInfo
+        ] = bittensor.DelegateInfo.list_from_vec_u8(
+            list(TEST_DELEGATE_INFO_HEX["vec normal"]())
+        )
+
+        for delegate_info, delegate_info_py in zip(delegates_info, delegates_info_py):
+            for attr in dir(delegate_info):
+                if not attr.startswith("__") and not callable(
+                    getattr(delegate_info, attr)
+                ):
+                    attr_py = py_getattr(delegate_info_py, attr)
+                    if dataclasses.is_dataclass(attr_py):
+                        attr_rs = getattr(delegate_info, attr)
+
+                        for sub_attr in dir(attr_rs):
+                            if not sub_attr.startswith("__") and not callable(
+                                getattr(attr_rs, sub_attr)
+                            ):
+                                self.assertEqual(
+                                    fix_field(
+                                        sub_attr, getattr(attr_rs, sub_attr), attr
+                                    ),
                                     py_getattr(attr_py, sub_attr),
                                     f"Attribute {attr}.{sub_attr} does not match",
                                 )
