@@ -88,7 +88,7 @@ class TestDecodeStakeInfo(unittest.TestCase):
 
     def test_decode_vec_vec_matches_python_impl(self):
         stake_info_list: List[
-            Tuple[str, List[bt_decode.StakeInfo]]
+            Tuple[bytes, List[bt_decode.StakeInfo]]
         ] = bt_decode.StakeInfo.decode_vec_tuple_vec(
             bytes.fromhex(TEST_STAKE_INFO_HEX["vec vec normal"])
         )
