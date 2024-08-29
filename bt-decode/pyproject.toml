@@ -1,7 +1,7 @@
 [project]
 name = "bt-decode"
 version = "0.0.1"
-description = "A wrapper around the scale-codec crate for Bittensor scale decoding."
+description = "A wrapper around the scale-codec crate for fast scale-decoding of Bittensor data structures."
 readme = "README.md"
 license = {text = "MIT License"}
 keywords = ["substrate", "scale", "codec", "bittensor"]
@@ -32,7 +32,7 @@ classifiers = [
         "Topic :: Software Development :: Libraries :: Python Modules",]
 
 [project.urls]
-Repository = "https://github.com/opentensor/"
+Repository = "https://github.com/opentensor/bt-decode"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
@@ -41,6 +41,7 @@ build-backend = "maturin"
 [project.optional-dependencies]
 dev = ["black==23.7.0","maturin", "ruff==0.4.7"]
 test = [
+    "bittensor==7.3.1",
     "pytest==7.2.0",
     "pytest-asyncio==0.23.7",
     "pytest-mock==3.12.0",

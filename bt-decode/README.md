@@ -1,2 +1,2 @@
 # bt-decoder
-A python wrapper around rust scale-codec for fast decoding of Bittensor data structures.
+A python wrapper around the rust scale-codec crate for fast scale-decoding of Bittensor data structures.
