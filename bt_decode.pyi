@@ -19,10 +19,10 @@ class AxonInfo:
     placeholder2: int
 
     @staticmethod
-    def decode(encoded: bytes) -> "PrometheusInfo":
+    def decode(encoded: bytes) -> "AxonInfo":
         pass
     @staticmethod
-    def decode_vec(encoded: bytes) -> List["PrometheusInfo"]:
+    def decode_vec(encoded: bytes) -> List["AxonInfo"]:
         pass
 
 class PrometheusInfo:
