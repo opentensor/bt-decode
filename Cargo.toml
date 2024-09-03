@@ -27,3 +27,4 @@ codec = { package = "parity-scale-codec", version = "3.2.2", default-features = 
 	"derive",
 ] }
 scale-info = { version = "2.11.2", default-features = false }
+serde_json = { version = "1.0.127", default-features = false }
