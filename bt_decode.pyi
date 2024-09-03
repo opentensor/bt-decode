@@ -235,9 +235,9 @@ class MetadataV15:
     ...     v15_int.encode().to_hex(),
     ...     sub.substrate.get_chain_finalised_head()
     ])
-    >>> metadata_hex_str = metadata_rpc_result['result']
-    >>> metadata_bytes = bytes.fromhex(metadata_hex_str[2:])
-    >>> metadata_v15 = bt_decode.MetadataV15.decode_from_metadata(encoded_metadata)
+    >>> metadata_option_hex_str = metadata_rpc_result['result']
+    >>> metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
+    >>> metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
     >>> print(metadata_v15.to_json())
     """
 
