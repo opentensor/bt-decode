@@ -26,5 +26,5 @@ scale-decode = { version = "0.13.0", default-features = false }
 codec = { package = "parity-scale-codec", version = "3.2.2", default-features = false, features = [
 	"derive",
 ] }
-scale-info = { version = "2.11.2", default-features = false }
-serde_json = { version = "1.0.127", default-features = false }
+scale-info = { version = "2.11.2", features = [ "serde" ], default-features = false }
+serde_json = { version = "1.0.127", features = [ "alloc" ], default-features = false }

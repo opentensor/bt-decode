@@ -249,3 +249,32 @@ class MetadataV15:
         Returns a JSON representation of the metadata.
         """
         pass
+
+class PortableRegistry:
+    """
+    PortableRegistry is a portable for of the chains registry that
+    can be used to serialize and deserialize the registry to and from JSON.
+
+    Example:
+    >>> import bittensor, bt_decode, scalecodec
+    >>> sub = bittensor.subtensor()
+    >>> v15_int = scalecodec.U32()
+    >>> v15_int.value = 15
+    >>> metadata_rpc_result = sub.substrate.rpc_request("state_call", [
+    ...     "Metadata_metadata_at_version",
+    ...     v15_int.encode().to_hex(),
+    ...     sub.substrate.get_chain_finalised_head()
+    ])
+    >>> metadata_option_hex_str = metadata_rpc_result['result']
+    >>> metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
+    >>> metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
+    >>> meta_v15_str = metadata_v15.to_json()
+    >>> meta_v15_json = json.loads(meta_v15_str)
+    >>> bt_decode.PortableRegistry.from_json( json.dumps(meta_v15_json['types']) )
+    """
+
+    registry: str  # JSON encoded PortableRegistry
+
+    @staticmethod
+    def from_json(json_str: str) -> "PortableRegistry":
+        pass

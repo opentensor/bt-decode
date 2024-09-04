@@ -1,5 +1,6 @@
 use codec::{Decode, Encode};
 use custom_derive::pydecode;
+use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use serde_json;
 
 use pyo3::prelude::*;
@@ -320,6 +321,25 @@ mod bt_decode {
                 RuntimeMetadata::V15(metadata) => PyMetadataV15 { metadata },
                 _ => panic!("Invalid metadata version"),
             }
+        }
+    }
+
+    #[pyclass(name = "PortableRegistry")]
+    struct PyPortableRegistry {
+        registry: scale_info::PortableRegistry,
+    }
+
+    #[pymethods]
+    impl PyPortableRegistry {
+        #[staticmethod]
+        fn from_json(json: &str) -> Self {
+            let registry: scale_info::PortableRegistry = serde_json::from_str(json).unwrap();
+            PyPortableRegistry { registry }
+        }
+
+        #[getter]
+        fn get_registry(&self) -> String {
+            serde_json::to_string(&self.registry).unwrap().into()
         }
     }
 
