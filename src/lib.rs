@@ -1,5 +1,7 @@
 use codec::{Decode, Encode};
 use custom_derive::pydecode;
+use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
+use serde_json;
 
 use pyo3::prelude::*;
 
@@ -26,6 +28,8 @@ type AccountId = [u8; 32];
 
 #[pymodule(name = "bt_decode")]
 mod bt_decode {
+    use frame_metadata::v15::RuntimeMetadataV15;
+
     use super::*;
 
     #[pyclass(name = "AxonInfo", get_all)]
@@ -288,6 +292,54 @@ mod bt_decode {
         fn py_decode_delegated(encoded: &[u8]) -> Vec<(DelegateInfo, Compact<u64>)> {
             Vec::<(DelegateInfo, Compact<u64>)>::decode(&mut &encoded[..])
                 .expect("Failed to decode Vec<(DelegateInfo, Compact<u64>)>")
+        }
+    }
+
+    #[pyclass(name = "MetadataV15")]
+    struct PyMetadataV15 {
+        metadata: RuntimeMetadataV15,
+    }
+
+    #[pymethods]
+    impl PyMetadataV15 {
+        fn to_json(&self) -> String {
+            serde_json::to_string(&self.metadata).unwrap().into()
+        }
+
+        #[staticmethod]
+        fn decode_from_metadata_option(encoded_metadata_v15: &[u8]) -> Self {
+            let option_vec = Option::<Vec<u8>>::decode(&mut &encoded_metadata_v15[..])
+                .ok()
+                .flatten()
+                .expect("Failed to Option metadata");
+
+            let metadata_v15 = RuntimeMetadataPrefixed::decode(&mut &option_vec[..])
+                .expect("Failed to decode metadata")
+                .1;
+
+            match metadata_v15 {
+                RuntimeMetadata::V15(metadata) => PyMetadataV15 { metadata },
+                _ => panic!("Invalid metadata version"),
+            }
+        }
+    }
+
+    #[pyclass(name = "PortableRegistry")]
+    struct PyPortableRegistry {
+        registry: scale_info::PortableRegistry,
+    }
+
+    #[pymethods]
+    impl PyPortableRegistry {
+        #[staticmethod]
+        fn from_json(json: &str) -> Self {
+            let registry: scale_info::PortableRegistry = serde_json::from_str(json).unwrap();
+            PyPortableRegistry { registry }
+        }
+
+        #[getter]
+        fn get_registry(&self) -> String {
+            serde_json::to_string(&self.registry).unwrap().into()
         }
     }
 
