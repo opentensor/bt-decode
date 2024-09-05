@@ -341,6 +341,12 @@ mod bt_decode {
         fn get_registry(&self) -> String {
             serde_json::to_string(&self.registry).unwrap().into()
         }
+
+        #[staticmethod]
+        fn from_metadata_v15(metadata: PyMetadataV15) -> Self {
+            let registry = metadata.metadata.types;
+            PyPortableRegistry { registry }
+        }
     }
 
     // #[pyfunction(name = "decode")]

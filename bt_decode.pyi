@@ -268,13 +268,14 @@ class PortableRegistry:
     >>> metadata_option_hex_str = metadata_rpc_result['result']
     >>> metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
     >>> metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
-    >>> meta_v15_str = metadata_v15.to_json()
-    >>> meta_v15_json = json.loads(meta_v15_str)
-    >>> bt_decode.PortableRegistry.from_json( json.dumps(meta_v15_json['types']) )
+    >>> bt_decode.PortableRegistry.from_metadata_v15( metadata_v15 )
     """
 
     registry: str  # JSON encoded PortableRegistry
 
     @staticmethod
     def from_json(json_str: str) -> "PortableRegistry":
+        pass
+    @staticmethod
+    def from_metadata_v15(metadata_v15: MetadataV15) -> "PortableRegistry":
         pass
