@@ -325,6 +325,7 @@ mod bt_decode {
     }
 
     #[pyclass(name = "PortableRegistry")]
+    #[derive(Clone, Decode, Encode, Debug)]
     struct PyPortableRegistry {
         registry: scale_info::PortableRegistry,
     }
