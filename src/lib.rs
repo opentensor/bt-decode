@@ -296,6 +296,7 @@ mod bt_decode {
     }
 
     #[pyclass(name = "MetadataV15")]
+    #[derive(Clone, Encode, Decode, Debug)]
     struct PyMetadataV15 {
         metadata: RuntimeMetadataV15,
     }
