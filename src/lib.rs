@@ -1,7 +1,6 @@
 use codec::{Decode, Encode};
 use custom_derive::pydecode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
-use serde_json;
 
 use pyo3::prelude::*;
 
@@ -26,9 +25,18 @@ impl_UnsignedCompactIntoPy!(u8, u16, u32, u64, u128);
 
 type AccountId = [u8; 32];
 
+mod dyndecoder;
+
 #[pymodule(name = "bt_decode")]
 mod bt_decode {
+    use std:: collections::HashMap;
+
+    use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
+    use pyo3::types::{PyDict, PyTuple};
+    use scale_value::{
+        self, scale::decode_as_type, Composite, Primitive, Value, ValueDef,
+    };
 
     use super::*;
 
@@ -304,7 +312,7 @@ mod bt_decode {
     #[pymethods]
     impl PyMetadataV15 {
         fn to_json(&self) -> String {
-            serde_json::to_string(&self.metadata).unwrap().into()
+            serde_json::to_string(&self.metadata).unwrap()
         }
 
         #[staticmethod]
@@ -327,8 +335,8 @@ mod bt_decode {
 
     #[pyclass(name = "PortableRegistry")]
     #[derive(Clone, Decode, Encode, Debug)]
-    struct PyPortableRegistry {
-        registry: scale_info::PortableRegistry,
+    pub struct PyPortableRegistry {
+        pub registry: scale_info::PortableRegistry,
     }
 
     #[pymethods]
@@ -341,7 +349,7 @@ mod bt_decode {
 
         #[getter]
         fn get_registry(&self) -> String {
-            serde_json::to_string(&self.registry).unwrap().into()
+            serde_json::to_string(&self.registry).unwrap()
         }
 
         #[staticmethod]
@@ -351,16 +359,84 @@ mod bt_decode {
         }
     }
 
-    // #[pyfunction(name = "decode")]
-    // fn py_decode(
-    //     type_string: &str,
-    //     encoded_metadata_v15: &[u8],
-    //     encoded: &[u8],
-    // ) -> PyResult<MetadataProof> {
-    //     let metadata_v15 = RuntimeMetadataPrefixed::decode(&mut &encoded_metadata_v15[..])
-    //         .expect("Failed to decode metadataV15")
-    //         .1;
+    fn composite_to_py_object(py: Python, value: Composite<u32>) -> PyResult<Py<PyAny>> {
+        match value {
+            Composite::Named(inner_) => {
+                let dict = PyDict::new_bound(py);
+                for (key, val) in inner_.iter() {
+                    let val_py = value_to_pyobject(py, val.clone())?;
+                    dict.set_item(key, val_py)?;
+                }
 
-    //     Ok(metadata_proof)
-    // }
+                Ok(dict.to_object(py))
+            }
+            Composite::Unnamed(inner_) => {
+                let tuple = PyTuple::new_bound(
+                    py,
+                    inner_
+                        .iter()
+                        .map(|val| value_to_pyobject(py, val.clone()))
+                        .collect::<PyResult<Vec<Py<PyAny>>>>()?,
+                );
+
+                Ok(tuple.to_object(py))
+            }
+        }
+    }
+
+    fn value_to_pyobject(py: Python, value: Value<u32>) -> PyResult<Py<PyAny>> {
+        match value.value {
+            ValueDef::<u32>::Primitive(inner) => {
+                let value = match inner {
+                    Primitive::U128(value) => value.to_object(py),
+                    Primitive::U256(value) => value.to_object(py),
+                    Primitive::I128(value) => value.to_object(py),
+                    Primitive::I256(value) => value.to_object(py),
+                    Primitive::Bool(value) => value.to_object(py),
+                    Primitive::Char(value) => value.to_object(py),
+                    Primitive::String(value) => value.to_object(py),
+                };
+
+                Ok(value)
+            }
+            ValueDef::<u32>::BitSequence(inner) => {
+                let value = inner.to_vec().to_object(py);
+
+                Ok(value)
+            }
+            ValueDef::<u32>::Composite(inner) => {
+                let value = composite_to_py_object(py, inner)?;
+
+                Ok(value)
+            }
+            ValueDef::<u32>::Variant(inner) => {
+                let value = PyDict::new_bound(py);
+                value.set_item(inner.name, composite_to_py_object(py, inner.values)?)?;
+
+                Ok(value.to_object(py))
+            }
+        }
+    }
+
+    #[pyfunction(name = "decode")]
+    fn py_decode(
+        py: Python,
+        type_string: &str,
+        portable_registry: &PyPortableRegistry,
+        encoded: &[u8],
+    ) -> PyResult<Py<PyAny>> {
+        // Create a memoization table for the type string to type id conversion
+        let mut memo = HashMap::<String, u32>::new();
+
+        fill_memo_using_well_known_types(&mut memo, &portable_registry.registry);
+
+        let type_id: u32 =
+            get_type_id_from_type_string(&mut memo, type_string, &portable_registry.registry)
+                .expect("Failed to get type id from type string");
+
+        let decoded = decode_as_type(&mut &encoded[..], type_id, &portable_registry.registry)
+            .expect("Failed to decode");
+
+        value_to_pyobject(py, decoded)
+    }
 }

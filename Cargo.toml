@@ -28,3 +28,5 @@ codec = { package = "parity-scale-codec", version = "3.2.2", default-features = 
 ] }
 scale-info = { version = "2.11.2", features = [ "serde" ], default-features = false }
 serde_json = { version = "1.0.127", features = [ "alloc" ], default-features = false }
+scale-bits = { version = "0.4.0", default-features = false }
+scale-value = { version = "0.16.2", default-features = false }
