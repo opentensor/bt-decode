@@ -1,5 +1,7 @@
 use scale_info::{form::PortableForm, PortableRegistry, Type, TypeDef};
-use scale_info::{PortableType, TypeDefArray, TypeDefPrimitive, TypeDefSequence, TypeDefTuple};
+use scale_info::{
+    PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence, TypeDefTuple,
+};
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::vec;
@@ -124,8 +126,9 @@ pub fn fill_memo_using_well_known_types(
 ) {
     // Start with primitives
     let primitives = vec![
-        "bool", "char", "str", "u8", "u16", "u32", "u64", "u128", "u256", "i8", "i16", "i32",
-        "i64", "i128", "i256", // Matches the scale_info::TypeDefPrimitive enum
+        "bool", "char", "str", "u8", "u16", "u32", "u64",
+        "u128",
+        // Apparently, u256, and i## are not supported
     ];
     let mut count = 0;
     let expected_count = primitives.len();
@@ -271,6 +274,29 @@ pub fn get_type_id_from_type_string(
         let new_type = scale_info::Type::<PortableForm>::new(
             scale_info::Path::default(),
             vec![], // Arrays don't have any type parameters
+            type_def,
+            vec![],
+        );
+
+        // Add the new type to the registry
+        let new_type_id = add_to_registry_no_check(new_type, registry);
+        // Insert to memo
+        memo.insert(type_string.to_string(), new_type_id);
+
+        Some(new_type_id)
+    } else if type_chars[type_chars.len() - 1] == '>'
+        && type_chars[0..8].iter().collect::<String>() == "Compact<"
+    {
+        // This is a Compact<T> type, which is a compact encoding of one type T
+
+        let sub_type_string = get_inner_string(type_string).trim();
+        let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
+
+        let type_def = TypeDef::Compact(TypeDefCompact::<PortableForm>::new(sub_type_id.into()));
+
+        let new_type = scale_info::Type::<PortableForm>::new(
+            scale_info::Path::default(),
+            vec![], // Compact doesn't have any type parameters
             type_def,
             vec![],
         );
