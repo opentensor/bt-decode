@@ -1,16 +1,24 @@
-
-use scale_info::TypeDefPrimitive;
 use scale_info::{form::PortableForm, PortableRegistry, Type, TypeDef};
+use scale_info::{PortableType, TypeDefArray, TypeDefPrimitive, TypeDefSequence, TypeDefTuple};
+use std::any::TypeId;
 use std::collections::HashMap;
+use std::vec;
 
 /*
-    * Get the sub type string from a type string
-    * This handles the case of Vec<T>, (T1, T2, T3, ...), [T; N]
-    */
+ * Get the sub type string from a type string
+ * This handles the case of Vec<T>, (T1, T2, T3, ...), [T; N]
+ */
 fn get_inner_string(type_string: &str) -> &str {
     let type_chars: Vec<char> = type_string.chars().collect();
     // last char of type is either >, ), or ]
-    let bracket_char = type_chars[type_chars.len() - 1];
+    let close_bracket_char = type_chars[type_chars.len() - 1];
+    let bracket_char = match close_bracket_char {
+        // Get the corresponding open bracket
+        '>' => '<',
+        ')' => '(',
+        ']' => '[',
+        _ => panic!("Invalid type string"),
+    };
 
     // Find start of sub type; starts after the first bracket
     let start = type_chars.iter().position(|&x| x == bracket_char).unwrap();
@@ -119,7 +127,7 @@ pub fn fill_memo_using_well_known_types(
         "bool", "char", "str", "u8", "u16", "u32", "u64", "u128", "u256", "i8", "i16", "i32",
         "i64", "i128", "i256", // Matches the scale_info::TypeDefPrimitive enum
     ];
-    let count = 0;
+    let mut count = 0;
     let expected_count = primitives.len();
 
     // Add primitives to memo first, stop when all primitives are added
@@ -132,6 +140,7 @@ pub fn fill_memo_using_well_known_types(
                 let primitive_name = primitive_to_type_string(primitive);
 
                 type_string_to_index.insert(primitive_name.to_string(), ty.id);
+                count += 1;
             }
             _ => continue,
         }
@@ -145,74 +154,134 @@ pub fn fill_memo_using_well_known_types(
     }
 }
 
+/**
+ * Adds a new type to the registry, without checking if it already exists.
+ *
+ * Returns the id of the new type
+ */
+fn add_to_registry_no_check(new_type: Type<PortableForm>, registry: &mut PortableRegistry) -> u32 {
+    let next_index = registry.types.len();
+    let new_type_id = next_index as u32;
+
+    let type_entry: PortableType = PortableType {
+        id: new_type_id,
+        ty: new_type,
+    };
+    // Add the new type to the registry
+    registry.types.push(type_entry);
+
+    // Return the id of the new type
+    new_type_id
+}
+
 /*
-    * Returns the TypeId in registry_builder of the type string
-    */
+ * Returns the TypeId in registry_builder of the type string
+ */
 pub fn get_type_id_from_type_string(
     memo: &mut HashMap<String, u32>,
     type_string: &str,
-    registry: &PortableRegistry,
+    registry: &mut PortableRegistry,
 ) -> Option<u32> {
     // Check if the type string is in the memo
     if let Some(idx) = memo.get(type_string) {
         return Some(*idx);
     } // This handles primitive types
 
-    /* TODO: Implement where type string is not well-known
+    // This means the type is NOT in the memo
+    // We only handle types that are ultimately constructed from other types in the memo.
+    // e.g. Vec<T>, (T1, T2, T3, ...), [T; N]
+
+    // TODO: Handle structs ("composite") and enums ("variants")
+
     // Create a new type and add it to the registry, memoize it, and return the id
     let type_chars: Vec<char> = type_string.chars().collect();
-    if type_chars[type_chars.len() - 1] == '>' {
-        // Has a sub type
-        // We will assume it's a Vec
+    if type_chars[type_chars.len() - 1] == '>'
+        && type_chars[0..4].iter().collect::<String>() == "Vec<"
+    {
+        // This is a Vec<T> type, which is a sequence of one type T
         let sub_type_string = get_inner_string(type_string).trim();
-        let sub_type_id =
-            get_type_id_from_type_string(memo, sub_type_string, registry_builder)?;
+        let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
 
-        let new_type = scale_info::Type::builder_portable()
-            .path(scale_info::Path::<PortableForm>::from_segments(vec![type_string]))
-            .composite(
-                scale_info::build::FieldsBuilder::<_, scale_info::build::UnnamedFields>::default()
-                    .field(|f| f.ty::<[u8]>().type_name("Vec<u8>")),
-            );
+        let type_def = TypeDef::Sequence(TypeDefSequence::<PortableForm>::new(sub_type_id.into()));
 
-        let new_type_id = registry_builder.register_type(new_type);
+        let new_type = scale_info::Type::<PortableForm>::new(
+            scale_info::Path::default(),
+            vec![], // Vecs don't have any type parameters
+            type_def,
+            vec![],
+        );
+
+        // Add the new type to the registry
+        let new_type_id = add_to_registry_no_check(new_type, registry);
+        // Insert to memo
+        memo.insert(type_string.to_string(), new_type_id);
+
         Some(new_type_id)
-    } else if type_string != "()"
-        && type_chars[0] == '('
-        && type_chars[type_chars.len() - 1] == ')'
+    } else if type_string != "()" && type_chars[0] == '(' && type_chars[type_chars.len() - 1] == ')'
     {
         // Is a tuple
         let inner_string = get_inner_string(type_string).trim();
-        let sub_types: Vec<String> = inner_string.split(",").map(|x| x.trim()).collect().into();
+        let sub_types: Vec<String> = inner_string.split(',').map(|x| x.trim().into()).collect();
 
-        Some(TypeDef::Tuple(TypeDefTuple::new_portable(
-            sub_types
-                .iter()
-                .map(|x| {
-                    TypeParameter::<PortableForm>::new_portable(
-                        "".to_string(),
-                        get_type_def_from_type_string(memo, x, registry)
-                            .unwrap()
-                            .into(),
-                    )
-                })
-                .collect(),
-        )))
-    } else if type_string != "[]" && type_chars[0] == '[' && type_chars[type_chars.len()] == ']'
+        let mut sub_type_ids = vec![];
+
+        for sub_type_string in sub_types {
+            let sub_type_id = get_type_id_from_type_string(memo, &sub_type_string, registry)?;
+
+            sub_type_ids.push(sub_type_id);
+        }
+
+        let sub_type_params: Vec<scale_info::interner::UntrackedSymbol<TypeId>> =
+            sub_type_ids.iter().map(|&id| id.into()).collect();
+
+        let type_def = TypeDef::Tuple(TypeDefTuple::<PortableForm>::new_portable(sub_type_params));
+
+        let new_type = scale_info::Type::<PortableForm>::new(
+            scale_info::Path::default(),
+            vec![], // Tuples don't have any type parameters
+            type_def,
+            vec![],
+        );
+
+        // Add the new type to the registry
+        let new_type_id = add_to_registry_no_check(new_type, registry);
+        // Insert to memo
+        memo.insert(type_string.to_string(), new_type_id);
+
+        Some(new_type_id)
+    } else if type_string != "[]" && type_chars[0] == '[' && type_chars[type_chars.len() - 1] == ']'
     {
-        // Is an array
+        // Is an array; [T; N] where T is in the memo
         let inner_string = get_inner_string(type_string).trim();
-        let semi_colon_index = inner_string.find(";")?;
+        let semi_colon_index = inner_string.find(';')?;
         let sub_type_string = inner_string[..semi_colon_index].trim();
 
-        let array_length = inner_string[semi_colon_index + 1..].parse::<u32>().unwrap();
+        let array_length = inner_string[semi_colon_index + 1..]
+            .trim()
+            .parse::<u32>()
+            .unwrap();
 
-        Some(TypeDef::Array(TypeDefArray::new(
+        let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
+
+        let type_def = TypeDef::Array(TypeDefArray::<PortableForm>::new(
             array_length,
-            get_type_def_from_type_string(memo, sub_type_string, registry)?.into(),
-        )))
-    }}
-        */
+            sub_type_id.into(),
+        ));
 
-    None
+        let new_type = scale_info::Type::<PortableForm>::new(
+            scale_info::Path::default(),
+            vec![], // Arrays don't have any type parameters
+            type_def,
+            vec![],
+        );
+
+        // Add the new type to the registry
+        let new_type_id = add_to_registry_no_check(new_type, registry);
+        // Insert to memo
+        memo.insert(type_string.to_string(), new_type_id);
+
+        Some(new_type_id)
+    } else {
+        None
+    }
 }

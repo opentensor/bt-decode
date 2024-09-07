@@ -29,14 +29,12 @@ mod dyndecoder;
 
 #[pymodule(name = "bt_decode")]
 mod bt_decode {
-    use std:: collections::HashMap;
+    use std::collections::HashMap;
 
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
     use pyo3::types::{PyDict, PyTuple};
-    use scale_value::{
-        self, scale::decode_as_type, Composite, Primitive, Value, ValueDef,
-    };
+    use scale_value::{self, scale::decode_as_type, Composite, Primitive, Value, ValueDef};
 
     use super::*;
 
@@ -428,14 +426,15 @@ mod bt_decode {
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
 
-        fill_memo_using_well_known_types(&mut memo, &portable_registry.registry);
+        let mut curr_registry = portable_registry.registry.clone();
 
-        let type_id: u32 =
-            get_type_id_from_type_string(&mut memo, type_string, &portable_registry.registry)
-                .expect("Failed to get type id from type string");
+        fill_memo_using_well_known_types(&mut memo, &curr_registry);
 
-        let decoded = decode_as_type(&mut &encoded[..], type_id, &portable_registry.registry)
-            .expect("Failed to decode");
+        let type_id: u32 = get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry)
+            .expect("Failed to get type id from type string");
+
+        let decoded =
+            decode_as_type(&mut &encoded[..], type_id, &curr_registry).expect("Failed to decode");
 
         value_to_pyobject(py, decoded)
     }
