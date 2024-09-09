@@ -198,7 +198,15 @@ pub fn get_type_id_from_type_string(
 
     // Create a new type and add it to the registry, memoize it, and return the id
     let type_chars: Vec<char> = type_string.chars().collect();
-    if type_chars[type_chars.len() - 1] == '>'
+    if type_chars[0..12].iter().collect::<String>() == "scale_info::" {
+        // This is a special formatting which has the type id in the string
+        let type_id = type_string[12..]
+            .trim()
+            .parse::<u32>()
+            .expect(format!("Failed to parse type id from string: {}", type_string).as_str());
+
+        Some(type_id)
+    } else if type_chars[type_chars.len() - 1] == '>'
         && type_chars[0..4].iter().collect::<String>() == "Vec<"
     {
         // This is a Vec<T> type, which is a sequence of one type T
