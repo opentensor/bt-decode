@@ -125,8 +125,8 @@ pub fn fill_memo_using_well_known_types(
     registry: &PortableRegistry,
 ) {
     // Start with primitives
-    let primitives = vec![
-        "bool", "char", "str", "u8", "u16", "u32", "u64",
+    let primitives = [
+        "bool", "str", "u8", "u16", "u32", "u64",
         "u128",
         // Apparently, u256, and i## are not supported
     ];
