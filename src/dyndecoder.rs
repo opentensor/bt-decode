@@ -339,6 +339,62 @@ pub fn get_type_id_from_type_string(
         memo.insert(type_string.to_string(), new_type_id);
 
         Some(new_type_id)
+    } else if type_chars[type_chars.len() - 1] == '>'
+        && type_chars.len() >= 7
+        && type_chars[0..7].iter().collect::<String>() == "Option<"
+    {
+        // This is an Option<T> type, which is an enum with two variants: None and Some(T)
+
+        // e.g. Option<T>
+        let inner_string = get_inner_string(type_string).trim();
+        let sub_type_string = inner_string;
+        let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
+
+        let option_type_id = get_type_id_from_type_string(memo, "Option", registry)?;
+        let option_type = registry
+            .resolve(option_type_id)
+            .expect("Option type not found in registry");
+
+        let new_variants: Vec<scale_info::Variant<PortableForm>> = vec![
+            scale_info::Variant {
+                name: "None".to_string(),
+                fields: vec![],
+                index: 0,
+                docs: vec![],
+            },
+            scale_info::Variant {
+                name: "Some".to_string(),
+                fields: vec![scale_info::Field {
+                    name: None,
+                    ty: sub_type_id.into(),
+                    type_name: None,
+                    docs: vec![],
+                }],
+                index: 1,
+                docs: vec![],
+            },
+        ];
+
+        let new_type_def = TypeDef::Variant(scale_info::TypeDefVariant::<PortableForm>::new(
+            new_variants,
+        ));
+
+        let new_type = scale_info::Type::<PortableForm>::new(
+            option_type.path.clone(),
+            vec![scale_info::TypeParameter::<PortableForm>::new_portable(
+                "T".to_string(),
+                Some(sub_type_id.into()),
+            )], // Tuples don't have any type parameters
+            new_type_def,
+            vec![],
+        );
+
+        // Add the new type to the registry
+        let new_type_id = add_to_registry_no_check(new_type, registry);
+        // Insert to memo
+        memo.insert(type_string.to_string(), new_type_id);
+
+        Some(new_type_id)
     } else {
         None
     }
