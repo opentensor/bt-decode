@@ -167,32 +167,32 @@ TEST_TYPE_STRING_SCALE_INFO_DECODING: Dict[str, Tuple[str, Any]] = {
             "pruning_score": 231,
         },
     ),  # NeuronInfo
-    "Option<scale_info::39>": ("00", {"None": ()}),
-    "Option<scale_info::39>": ("000100", {"Some": (1,)}), # u16
+    "Option<scale_info::39> ": ("00", None),
+    "Option<scale_info::39>": ("010100", 1), # u16
 }
 
 
 TEST_TYPE_STRING_PLAIN_DECODING: Dict[str, Tuple[str, Any]] = {
     "bool": ("01", True),
-    "bool": ("00", False),
+    "bool ": ("00", False),
     "u8": ("01", 1),
     "u16": ("0100", 1),
     "u32": ("01000000", 1),
     "u64": ("0100000000000000", 1),
     "u128": ("01000000000000000000000000000000", 1),
     "Compact<u8>": ("00", 0),
-    "Compact<u8>": ("fd03", 2**8-1),
+    "Compact<u8> ": ("fd03", 2**8-1),
     "Compact<u16>": ("feff0300", 2**16-1),
     "Compact<u32>": ("03ffffffff", 2**32-1),
     "Compact<u64>": ("13ffffffffffffffff", 2**64-1),
     #"Option<u8>": ("010c", {"Some": (12,)}),
     #"Option<u8>": ("00", None),
-    "Option<u32>": ("00", {"None": ()}),
-    "Option<u32>": ("0101000000", {"Some": (1,)}), # Returns a tuple
+    "Option<u32>": ("00", None),
+    "Option<u32> ": ("0101000000", 1), # Returns a tuple
     "()": ("", ()),
     "[u8; 4]": ("62616265", (98, 97, 98, 101)),
-    "Vec<u8>": ("03010203", (1, 2, 3)),
-    "Vec<u8>": ("00", ()),
+    "Vec<u8>": ("0c010203", (1, 2, 3)),
+    "Vec<u8> ": ("00", ()),
     "str": ("0c666f6f", "foo"),
 }
 
@@ -216,6 +216,8 @@ class TestDecodeByPlainTypeString:
         cls.registry = bt_decode.PortableRegistry.from_json(types_json_str)
 
     def test_decode_values(self, type_string: str, test_hex: str, expected: Any):
+        type_string = type_string.strip()
+
         test_bytes = bytes.fromhex(test_hex)
         actual = bt_decode.decode(type_string, self.registry, test_bytes)
         assert actual == expected
@@ -239,6 +241,8 @@ class TestDecodeByScaleInfoTypeString:
         cls.registry = bt_decode.PortableRegistry.from_json(types_json_str)
 
     def test_decode_values(self, type_string: str, test_hex: str, expected: Any):
+        type_string = type_string.strip() 
+
         test_bytes = bytes.fromhex(test_hex)
         actual = bt_decode.decode(type_string, self.registry, test_bytes)
         assert actual == expected
