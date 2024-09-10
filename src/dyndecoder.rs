@@ -1,6 +1,7 @@
 use scale_info::{form::PortableForm, PortableRegistry, Type, TypeDef};
 use scale_info::{
-    PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence, TypeDefTuple,
+    IntoPortable, PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence,
+    TypeDefTuple,
 };
 use std::any::TypeId;
 use std::collections::HashMap;
@@ -326,8 +327,11 @@ pub fn get_type_id_from_type_string(
 
         let type_def = TypeDef::Compact(TypeDefCompact::<PortableForm>::new(sub_type_id.into()));
 
+        let mut new_path = scale_info::Path::<PortableForm>::default();
+        new_path.segments.push("Compact".to_string());
+
         let new_type = scale_info::Type::<PortableForm>::new(
-            scale_info::Path::default(),
+            new_path,
             vec![], // Compact doesn't have any type parameters
             type_def,
             vec![],
@@ -349,11 +353,6 @@ pub fn get_type_id_from_type_string(
         let inner_string = get_inner_string(type_string).trim();
         let sub_type_string = inner_string;
         let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
-
-        let option_type_id = get_type_id_from_type_string(memo, "Option", registry)?;
-        let option_type = registry
-            .resolve(option_type_id)
-            .expect("Option type not found in registry");
 
         let new_variants: Vec<scale_info::Variant<PortableForm>> = vec![
             scale_info::Variant {
@@ -379,8 +378,11 @@ pub fn get_type_id_from_type_string(
             new_variants,
         ));
 
+        let mut new_path = scale_info::Path::<PortableForm>::default();
+        new_path.segments.push("Option".to_string());
+
         let new_type = scale_info::Type::<PortableForm>::new(
-            option_type.path.clone(),
+            new_path,
             vec![scale_info::TypeParameter::<PortableForm>::new_portable(
                 "T".to_string(),
                 Some(sub_type_id.into()),

@@ -167,6 +167,8 @@ TEST_TYPE_STRING_SCALE_INFO_DECODING: Dict[str, Tuple[str, Any]] = {
             "pruning_score": 231,
         },
     ),  # NeuronInfo
+    "Option<scale_info::39>": ("00", {"None": ()}),
+    "Option<scale_info::39>": ("000100", {"Some": (1,)}), # u16
 }
 
 
@@ -185,7 +187,7 @@ TEST_TYPE_STRING_PLAIN_DECODING: Dict[str, Tuple[str, Any]] = {
     "Compact<u64>": ("13ffffffffffffffff", 2**64-1),
     #"Option<u8>": ("010c", {"Some": (12,)}),
     #"Option<u8>": ("00", None),
-    "Option<u32>": ("00", None),
+    "Option<u32>": ("00", {"None": ()}),
     "Option<u32>": ("0101000000", {"Some": (1,)}), # Returns a tuple
     "()": ("", ()),
     "[u8; 4]": ("62616265", (98, 97, 98, 101)),
