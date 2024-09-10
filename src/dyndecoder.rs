@@ -198,15 +198,16 @@ pub fn get_type_id_from_type_string(
 
     // Create a new type and add it to the registry, memoize it, and return the id
     let type_chars: Vec<char> = type_string.chars().collect();
-    if type_chars[0..12].iter().collect::<String>() == "scale_info::" {
+    if type_chars.len() >= 12 && type_chars[0..12].iter().collect::<String>() == "scale_info::" {
         // This is a special formatting which has the type id in the string
         let type_id = type_string[12..]
             .trim()
             .parse::<u32>()
-            .expect(format!("Failed to parse type id from string: {}", type_string).as_str());
+            .unwrap_or_else(|_| panic!("Failed to parse type id from string: {}", type_string));
 
         Some(type_id)
     } else if type_chars[type_chars.len() - 1] == '>'
+        && type_chars.len() >= 4
         && type_chars[0..4].iter().collect::<String>() == "Vec<"
     {
         // This is a Vec<T> type, which is a sequence of one type T
@@ -230,7 +231,8 @@ pub fn get_type_id_from_type_string(
         Some(new_type_id)
     } else if type_string != "()" && type_chars[0] == '(' && type_chars[type_chars.len() - 1] == ')'
     {
-        // Is a tuple
+        // This is a tuple; (T1, T2, T3, ...)
+        // Made of multiple sub types T1, T2, T3, possibly different
         let inner_string = get_inner_string(type_string).trim();
         let sub_types: Vec<String> = inner_string.split(',').map(|x| x.trim().into()).collect();
 
@@ -293,10 +295,10 @@ pub fn get_type_id_from_type_string(
 
         Some(new_type_id)
     } else if type_chars[type_chars.len() - 1] == '>'
+        && type_chars.len() >= 8
         && type_chars[0..8].iter().collect::<String>() == "Compact<"
     {
         // This is a Compact<T> type, which is a compact encoding of one type T
-
         let sub_type_string = get_inner_string(type_string).trim();
         let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
 
