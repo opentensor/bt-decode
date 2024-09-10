@@ -1,6 +1,6 @@
 use scale_info::{form::PortableForm, PortableRegistry, Type, TypeDef};
 use scale_info::{
-    IntoPortable, PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence,
+    PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence,
     TypeDefTuple,
 };
 use std::any::TypeId;

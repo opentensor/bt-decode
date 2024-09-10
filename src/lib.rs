@@ -408,10 +408,37 @@ mod bt_decode {
                 Ok(value)
             }
             ValueDef::<u32>::Variant(inner) => {
-                let value = PyDict::new_bound(py);
-                value.set_item(inner.name, composite_to_py_object(py, inner.values)?)?;
+                if inner.name == "None" || inner.name == "Some" {
+                    match inner.name.as_str() {
+                        "None" => Ok(py.None()),
+                        "Some" => {
+                            let some = composite_to_py_object(py, inner.values.clone())?;
+                            if inner.values.len() == 1 {
+                                let tuple = some
+                                    .downcast_bound::<PyTuple>(py)
+                                    .expect("Failed to downcast back to a tuple");
+                                Ok(tuple
+                                    .get_item(0)
+                                    .expect("Failed to get item from tuple")
+                                    .to_object(py))
+                            } else {
+                                Ok(some.to_object(py))
+                            }
+                        }
+                        _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                            "Invalid variant name: {} for Option",
+                            inner.name
+                        ))),
+                    }
+                } else {
+                    let value = PyDict::new_bound(py);
+                    value.set_item(
+                        inner.name.clone(),
+                        composite_to_py_object(py, inner.values)?,
+                    )?;
 
-                Ok(value.to_object(py))
+                    Ok(value.to_object(py))
+                }
             }
         }
     }
