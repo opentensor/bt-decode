@@ -56,12 +56,34 @@ fn transform_type_to_string(ty: &Type<PortableForm>, registry: &PortableRegistry
     let type_def = ty.type_def.clone();
 
     if !path.is_empty() {
-        return path
-            .clone()
-            .segments
-            .last()
-            .expect("type path is empty after checking")
-            .to_string();
+        if ty.type_params.is_empty() && ty.type_params.iter().all(|param| param.ty.is_none()) {
+            return path
+                .clone()
+                .segments
+                .last()
+                .expect("type path is empty after checking")
+                .to_string();
+        } else {
+            // This is a generic type
+            let type_params_string = ty
+                .type_params
+                .iter()
+                .map(|param| {
+                    if param.ty.is_none() {
+                        return "".to_string();
+                    }
+                    let param_id = param.ty.unwrap().id;
+                    let param_type = registry
+                        .resolve(param_id)
+                        .expect("type param not found in registry");
+                    transform_type_to_string(param_type, registry)
+                })
+                .filter(|x| !x.is_empty())
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            format!("{}<{}>", path.segments.last().unwrap(), type_params_string)
+        }
     } else {
         match type_def {
             TypeDef::Array(value) => {
