@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 class AxonInfo:
     #  Axon serving block.
@@ -218,3 +218,69 @@ class DelegateInfo:
     @staticmethod
     def decode_delegated(encoded: bytes) -> List[Tuple["DelegateInfo", int]]:
         pass
+
+class MetadataV15:
+    """
+    MetadataV15 is the 15th version-style of metadata for the chain.
+    It contains information about all the chain types, including the type signatures
+    of the Runtime API functions.
+
+    Example:
+    >>> import bittensor, bt_decode, scalecodec
+    >>> sub = bittensor.subtensor()
+    >>> v15_int = scalecodec.U32()
+    >>> v15_int.value = 15
+    >>> metadata_rpc_result = sub.substrate.rpc_request("state_call", [
+    ...     "Metadata_metadata_at_version",
+    ...     v15_int.encode().to_hex(),
+    ...     sub.substrate.get_chain_finalised_head()
+    ])
+    >>> metadata_option_hex_str = metadata_rpc_result['result']
+    >>> metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
+    >>> metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
+    >>> print(metadata_v15.to_json())
+    """
+
+    @staticmethod
+    def decode_from_metadata_option(encoded_metadata_v15: bytes) -> "MetadataV15":
+        pass
+    def to_json(self) -> str:
+        """
+        Returns a JSON representation of the metadata.
+        """
+        pass
+
+class PortableRegistry:
+    """
+    PortableRegistry is a portable for of the chains registry that
+    can be used to serialize and deserialize the registry to and from JSON.
+
+    Example:
+    >>> import bittensor, bt_decode, scalecodec
+    >>> sub = bittensor.subtensor()
+    >>> v15_int = scalecodec.U32()
+    >>> v15_int.value = 15
+    >>> metadata_rpc_result = sub.substrate.rpc_request("state_call", [
+    ...     "Metadata_metadata_at_version",
+    ...     v15_int.encode().to_hex(),
+    ...     sub.substrate.get_chain_finalised_head()
+    ])
+    >>> metadata_option_hex_str = metadata_rpc_result['result']
+    >>> metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
+    >>> metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
+    >>> bt_decode.PortableRegistry.from_metadata_v15( metadata_v15 )
+    """
+
+    registry: str  # JSON encoded PortableRegistry
+
+    @staticmethod
+    def from_json(json_str: str) -> "PortableRegistry":
+        pass
+    @staticmethod
+    def from_metadata_v15(metadata_v15: MetadataV15) -> "PortableRegistry":
+        pass
+
+def decode(
+    type_string: str, portable_registry: PortableRegistry, encoded: bytes
+) -> Any:
+    pass
