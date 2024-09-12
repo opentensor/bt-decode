@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 class AxonInfo:
     #  Axon serving block.
@@ -279,3 +279,8 @@ class PortableRegistry:
     @staticmethod
     def from_metadata_v15(metadata_v15: MetadataV15) -> "PortableRegistry":
         pass
+
+def decode(
+    type_string: str, portable_registry: PortableRegistry, encoded: bytes
+) -> Any:
+    pass
