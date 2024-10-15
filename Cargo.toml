@@ -13,7 +13,7 @@ name = "bt_decode"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
-version = "0.22.2"
+version = "0.22.3"
 features = ["extension-module"]
 
 [dependencies.custom_derive]

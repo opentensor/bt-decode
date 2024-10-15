@@ -22,6 +22,9 @@ class AxonInfo:
     def decode(encoded: bytes) -> "AxonInfo":
         pass
     @staticmethod
+    def decode_option(encoded: bytes) -> Optional["AxonInfo"]:
+        pass
+    @staticmethod
     def decode_vec(encoded: bytes) -> List["AxonInfo"]:
         pass
 
@@ -40,7 +43,48 @@ class PrometheusInfo:
     def decode(encoded: bytes) -> "PrometheusInfo":
         pass
     @staticmethod
+    def decode_option(encoded: bytes) -> Optional["PrometheusInfo"]:
+        pass
+    @staticmethod
     def decode_vec(encoded: bytes) -> List["PrometheusInfo"]:
+        pass
+
+class NeuronInfo:
+    hotkey: bytes
+    coldkey: bytes
+    uid: int
+    netuid: int
+    active: bool
+    axon_info: AxonInfo
+    prometheus_info: PrometheusInfo
+    stake: List[
+        Tuple[bytes, int]
+    ]  # map of coldkey to stake on this neuron/hotkey (includes delegations)
+    rank: int
+    emission: int
+    incentive: int
+    consensus: int
+    trust: int
+    validator_trust: int
+    dividends: int
+    last_update: int
+    validator_permit: bool
+    weights: List[
+        Tuple[int, int]  # Vec of (uid, weight)
+    ]
+    bonds: List[
+        Tuple[int, int]  # Vec of (uid, bond)
+    ]
+    pruning_score: int
+
+    @staticmethod
+    def decode(encoded: bytes) -> "NeuronInfo":
+        pass
+    @staticmethod
+    def decode_option(encoded: bytes) -> Optional["NeuronInfo"]:
+        pass
+    @staticmethod
+    def decode_vec(encoded: bytes) -> List["NeuronInfo"]:
         pass
 
 class NeuronInfoLite:
@@ -70,6 +114,9 @@ class NeuronInfoLite:
     def decode(encoded: bytes) -> "NeuronInfoLite":
         pass
     @staticmethod
+    def decode_option(encoded: bytes) -> Optional["NeuronInfoLite"]:
+        pass
+    @staticmethod
     def decode_vec(encoded: bytes) -> List["NeuronInfoLite"]:
         pass
 
@@ -82,6 +129,9 @@ class SubnetIdentity:
 
     @staticmethod
     def decode(encoded: bytes) -> "SubnetIdentity":
+        pass
+    @staticmethod
+    def decode_option(encoded: bytes) -> Optional["SubnetIdentity"]:
         pass
     @staticmethod
     def decode_vec(encoded: bytes) -> List["SubnetIdentity"]:
@@ -109,6 +159,9 @@ class SubnetInfo:
 
     @staticmethod
     def decode(encoded: bytes) -> "SubnetInfo":
+        pass
+    @staticmethod
+    def decode_option(encoded: bytes) -> Optional["SubnetInfo"]:
         pass
     @staticmethod
     def decode_vec(encoded: bytes) -> List["SubnetInfo"]:
@@ -140,6 +193,9 @@ class SubnetInfoV2:
 
     @staticmethod
     def decode(encoded: bytes) -> "SubnetInfoV2":
+        pass
+    @staticmethod
+    def decode_option(encoded: bytes) -> Optional["SubnetInfoV2"]:
         pass
     @staticmethod
     def decode_vec(encoded: bytes) -> List["SubnetInfoV2"]:
@@ -181,6 +237,9 @@ class SubnetHyperparameters:
     def decode(encoded: bytes) -> "SubnetHyperparameters":
         pass
     @staticmethod
+    def decode_option(encoded: bytes) -> Optional["SubnetHyperparameters"]:
+        pass
+    @staticmethod
     def decode_vec(encoded: bytes) -> List["SubnetHyperparameters"]:
         pass
 
@@ -191,6 +250,9 @@ class StakeInfo:
 
     @staticmethod
     def decode(encoded: bytes) -> "StakeInfo":
+        pass
+    @staticmethod
+    def decode_option(encoded: bytes) -> Optional["StakeInfo"]:
         pass
     @staticmethod
     def decode_vec(encoded: bytes) -> List["StakeInfo"]:
@@ -206,11 +268,16 @@ class DelegateInfo:
     owner_ss58: bytes
     registrations: List[int]  # Vec of netuid this delegate is registered on
     validator_permits: List[int]  # Vec of netuid this delegate has validator permit on
-    return_per_1000: int  # Delegators current daily return per 1000 TAO staked minus take fee
+    return_per_1000: (
+        int  # Delegators current daily return per 1000 TAO staked minus take fee
+    )
     total_daily_return: int
 
     @staticmethod
     def decode(encoded: bytes) -> "DelegateInfo":
+        pass
+    @staticmethod
+    def decode_option(encoded: bytes) -> Optional["DelegateInfo"]:
         pass
     @staticmethod
     def decode_vec(encoded: bytes) -> List["DelegateInfo"]:

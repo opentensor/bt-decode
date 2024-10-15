@@ -17,7 +17,7 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_delegates",
     params=[ ]
 )
-# Decode scale-encoded DelegateInfo
+# Decode scale-encoded Vec<DelegateInfo>
 delegates_info: List[DelegateInfo] = DelegateInfo.decode_vec(
     bytes.fromhex(
         hex_bytes_result
@@ -38,7 +38,7 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_delegated",
     params=[list( validator_key.public_key )]
 )
-# Decode scale-encoded (DelegateInfo, take)
+# Decode scale-encoded Vec<(DelegateInfo, take)>
 delegated_info: List[Tuple[DelegateInfo, int]] = DelegateInfo.decode_delegated(
     bytes.fromhex(
         hex_bytes_result
@@ -82,8 +82,8 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_neurons",
     params=[NETUID]
 )
-# Decode scale-encoded NeuronInfo
-neurons: List[NeuronInfo] = NeuronInfo.decode(
+# Decode scale-encoded Vec<NeuronInfo>
+neurons: List[NeuronInfo] = NeuronInfo.decode_vec(
     bytes.fromhex(
         hex_bytes_result
 ))
@@ -126,8 +126,8 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_neurons_lite",
     params=[NETUID]
 )
-# Decode scale-encoded NeuronInfoLite
-neurons_lite: List[NeuronInfoLite] = NeuronInfoLite.decode(
+# Decode scale-encoded Vec<NeuronInfoLite>
+neurons_lite: List[NeuronInfoLite] = NeuronInfoLite.decode_vec(
     bytes.fromhex(
         hex_bytes_result
 ))
@@ -178,7 +178,7 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_stake_info_for_coldkeys",
     params=[encoded_coldkeys]
 )
-# Decode scale-encoded (AccountId, StakeInfo)
+# Decode scale-encoded Vec<(AccountId, StakeInfo)>
 stake_info: List[Tuple[bytes, List["StakeInfo"]]] = StakeInfo.decode_vec_tuple_vec(
     bytes.fromhex(
         hex_bytes_result
@@ -199,8 +199,8 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_subnet_info",
     params=[NETUID]
 )
-# Decode scale-encoded SubnetInfo
-subnet_info: SubnetInfo = SubnetInfo.decode(
+# Decode scale-encoded Option<SubnetInfo>
+subnet_info: SubnetInfo = SubnetInfo.decode_option(
     bytes.fromhex(
         hex_bytes_result
 ))
@@ -219,15 +219,15 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_subnets_info",
     params=[ ]
 )
-# Decode scale-encoded Optional[SubnetInfo]
-subnets_info: List[Optional[SubnetInfo]] = SubnetInfo.decode_vec(
+# Decode scale-encoded Vec<Option<SubnetInfo>>
+subnets_info: List[Optional[SubnetInfo]] = SubnetInfo.decode_vec_option(
     bytes.fromhex(
         hex_bytes_result
 ))
 ```
 
 ### SubnetHyperparameters
-#### get_subnet_info
+#### get_subnet_hyperparams
 ```python
 import bittensor
 from bt_decode import SubnetHyperparameters
@@ -241,8 +241,8 @@ hex_bytes_result = sub.query_runtime_api(
     method="get_subnet_hyperparams",
     params=[NETUID]
 )
-# Decode scale-encoded SubnetHyperparameters
-subnet_hyper_params: SubnetHyperparameters = SubnetHyperparameters.decode(
+# Decode scale-encoded Option<SubnetHyperparameters>
+subnet_hyper_params: Optional[SubnetHyperparameters] = SubnetHyperparameters.decode_option(
     bytes.fromhex(
         hex_bytes_result
 ))
