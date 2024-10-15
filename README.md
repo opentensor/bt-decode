@@ -247,3 +247,44 @@ subnet_hyper_params: SubnetHyperparameters = SubnetHyperparameters.decode(
         hex_bytes_result
 ))
 ```
+
+### decode by type string
+*Note: This feature is unstable, but working for multiple types.*
+
+You may also decode using a type-string formed from existing types by passing the metadata as pulled from a node (or formed manually).
+```python
+import bittensor, bt_decode, scalecodec
+# Get subtensor connection
+sub = bittensor.subtensor()
+# Create a param for the RPC call, using v15 metadata
+v15_int = scalecodec.U32()
+v15_int.value = 15
+# Make the RPC call to grab the metadata
+metadata_rpc_result = sub.substrate.rpc_request("state_call", [
+    "Metadata_metadata_at_version",
+    v15_int.encode().to_hex(),
+    sub.substrate.get_chain_finalised_head()
+])
+# Decode the metadata into a PortableRegistry type
+metadata_option_hex_str = metadata_rpc_result['result']
+metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
+metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
+registry = bt_decode.PortableRegistry.from_metadata_v15( metadata_v15 )
+
+# Decode by type-string
+NETUID = 1
+## Grab result from RuntimeAPI
+hex_bytes_result = sub.query_runtime_api(
+    runtime_api="NeuronInfoRuntimeApi",
+    method="get_neurons_lite",
+    params=[NETUID]
+)
+## Decode scale-encoded NeuronInfoLite by type-string
+neurons_lite: List[NeuronInfoLite] = bt_decode.decode(
+    "Vec<NeuronInfoLite>", # type-string
+    registry, # registry as above
+    bytes.fromhex(
+        hex_bytes_result # bytes to decode
+    )
+)
+```
