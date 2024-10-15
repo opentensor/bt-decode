@@ -52,9 +52,8 @@ fn pydecode_impl(attr: TokenStream2, tokens: TokenStream2) -> Result<TokenStream
         #[pyo3(name = "decode")]
         #[staticmethod]
         fn py_decode(encoded: &[u8]) -> Self {
-            let decoded = #struct_name::decode(&mut &encoded[..])
-                .expect(&format!("Failed to decode {}", #struct_name_str));
-            decoded
+            #struct_name::decode(&mut &encoded[..])
+                .expect(&format!("Failed to decode {}", #struct_name_str))
         }
     });
 
@@ -65,6 +64,16 @@ fn pydecode_impl(attr: TokenStream2, tokens: TokenStream2) -> Result<TokenStream
         fn py_decode_vec(encoded: &[u8]) -> Vec<Self> {
             Vec::<#struct_name>::decode(&mut &encoded[..])
                 .expect(&format!("Failed to decode Vec<{}>", #struct_name_str))
+        }
+    });
+
+    // Add the py_decode_option method
+    item_impl.items.push(parse_quote! {
+        #[pyo3(name = "decode_option")]
+        #[staticmethod]
+        fn py_decode_option(encoded: &[u8]) -> Option<Self> {
+            Option::<#struct_name>::decode(&mut &encoded[..])
+                .expect(&format!("Failed to decode Option<{}>", #struct_name_str))
         }
     });
 

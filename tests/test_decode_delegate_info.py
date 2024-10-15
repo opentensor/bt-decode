@@ -46,10 +46,10 @@ class TestDecodeDelegateInfo(unittest.TestCase):
         )
 
     def test_decode_delegated_matches_python_impl(self):
-        delegate_info_list: List[
-            Tuple[bt_decode.DelegateInfo, int]
-        ] = bt_decode.DelegateInfo.decode_delegated(
-            TEST_DELEGATE_INFO_HEX["delegated normal"]()
+        delegate_info_list: List[Tuple[bt_decode.DelegateInfo, int]] = (
+            bt_decode.DelegateInfo.decode_delegated(
+                TEST_DELEGATE_INFO_HEX["delegated normal"]()
+            )
         )
 
         delegate_info_py_list = bittensor.DelegateInfo.delegated_list_from_vec_u8(
@@ -96,14 +96,14 @@ class TestDecodeDelegateInfo(unittest.TestCase):
         _ = bt_decode.DelegateInfo.decode_vec(TEST_DELEGATE_INFO_HEX["vec normal"]())
 
     def test_decode_vec_matches_python_impl(self):
-        delegates_info: List[
-            bt_decode.DelegateInfo
-        ] = bt_decode.DelegateInfo.decode_vec(TEST_DELEGATE_INFO_HEX["vec normal"]())
+        delegates_info: List[bt_decode.DelegateInfo] = (
+            bt_decode.DelegateInfo.decode_vec(TEST_DELEGATE_INFO_HEX["vec normal"]())
+        )
 
-        delegates_info_py: List[
-            bittensor.DelegateInfo
-        ] = bittensor.DelegateInfo.list_from_vec_u8(
-            list(TEST_DELEGATE_INFO_HEX["vec normal"]())
+        delegates_info_py: List[bittensor.DelegateInfo] = (
+            bittensor.DelegateInfo.list_from_vec_u8(
+                list(TEST_DELEGATE_INFO_HEX["vec normal"]())
+            )
         )
 
         for delegate_info, delegate_info_py in zip(delegates_info, delegates_info_py):

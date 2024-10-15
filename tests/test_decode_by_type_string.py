@@ -209,7 +209,6 @@ class TestDecodeByPlainTypeString:
 
     @classmethod
     def setup_class(cls) -> None:
-
         with open(TEST_TYPES_JSON, "r") as f:
             types_json_str = f.read()
 
@@ -233,7 +232,6 @@ class TestDecodeByScaleInfoTypeString:
 
     @classmethod
     def setup_class(cls) -> None:
-
         with open(TEST_TYPES_JSON, "r") as f:
             types_json_str = f.read()
 

@@ -1,7 +1,6 @@
 use scale_info::{form::PortableForm, PortableRegistry, Type, TypeDef};
 use scale_info::{
-    PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence,
-    TypeDefTuple,
+    PortableType, TypeDefArray, TypeDefCompact, TypeDefPrimitive, TypeDefSequence, TypeDefTuple,
 };
 use std::any::TypeId;
 use std::collections::HashMap;
