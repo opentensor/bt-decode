@@ -90,7 +90,7 @@ neurons: List[NeuronInfo] = NeuronInfo.decode_vec(
 ```
 
 ### NeuronInfoLite
-#### get_neuron
+#### get_neuron_lite
 ```python
 import bittensor
 from bt_decode import NeuronInfoLite
