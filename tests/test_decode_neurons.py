@@ -106,16 +106,16 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
         )
 
     def test_decode_vec_matches_python_impl(self):
-        neurons_info: List[
-            bt_decode.NeuronInfoLite
-        ] = bt_decode.NeuronInfoLite.decode_vec(
-            TEST_NEURON_INFO_LITE_HEX["vec normal"]()
+        neurons_info: List[bt_decode.NeuronInfoLite] = (
+            bt_decode.NeuronInfoLite.decode_vec(
+                TEST_NEURON_INFO_LITE_HEX["vec normal"]()
+            )
         )
 
-        neurons_info_py: List[
-            bittensor.NeuronInfoLite
-        ] = bittensor.NeuronInfoLite.list_from_vec_u8(
-            list(TEST_NEURON_INFO_LITE_HEX["vec normal"]())
+        neurons_info_py: List[bittensor.NeuronInfoLite] = (
+            bittensor.NeuronInfoLite.list_from_vec_u8(
+                list(TEST_NEURON_INFO_LITE_HEX["vec normal"]())
+            )
         )
 
         for neuron_info, neuron_info_py in zip(neurons_info, neurons_info_py):
@@ -198,10 +198,10 @@ class TestDecodeNeuronInfo(unittest.TestCase):
             TEST_NEURON_INFO_HEX["vec normal"]()
         )
 
-        neurons_info_py: List[
-            bittensor.NeuronInfo
-        ] = bittensor.NeuronInfo.list_from_vec_u8(
-            list(TEST_NEURON_INFO_HEX["vec normal"]())
+        neurons_info_py: List[bittensor.NeuronInfo] = (
+            bittensor.NeuronInfo.list_from_vec_u8(
+                list(TEST_NEURON_INFO_HEX["vec normal"]())
+            )
         )
 
         for neuron_info, neuron_info_py in zip(neurons_info, neurons_info_py):

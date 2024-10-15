@@ -48,10 +48,10 @@ class TestDecodeStakeInfo(unittest.TestCase):
             bytes.fromhex(TEST_STAKE_INFO_HEX["vec normal"])
         )
 
-        stake_info_py_list: List[
-            bittensor.StakeInfo
-        ] = bittensor.StakeInfo.list_from_vec_u8(
-            list(bytes.fromhex(TEST_STAKE_INFO_HEX["vec normal"]))
+        stake_info_py_list: List[bittensor.StakeInfo] = (
+            bittensor.StakeInfo.list_from_vec_u8(
+                list(bytes.fromhex(TEST_STAKE_INFO_HEX["vec normal"]))
+            )
         )
 
         for stake_info, stake_info_py in zip(stake_info_list, stake_info_py_list):
@@ -87,17 +87,17 @@ class TestDecodeStakeInfo(unittest.TestCase):
             self.assertGreater(attr_count, 0, "No attributes found")
 
     def test_decode_vec_vec_matches_python_impl(self):
-        stake_info_list: List[
-            Tuple[bytes, List[bt_decode.StakeInfo]]
-        ] = bt_decode.StakeInfo.decode_vec_tuple_vec(
-            bytes.fromhex(TEST_STAKE_INFO_HEX["vec vec normal"])
+        stake_info_list: List[Tuple[bytes, List[bt_decode.StakeInfo]]] = (
+            bt_decode.StakeInfo.decode_vec_tuple_vec(
+                bytes.fromhex(TEST_STAKE_INFO_HEX["vec vec normal"])
+            )
         )
 
         # Poor method name, should be dict_of_list_from_vec_u8
-        stake_info_py_dict: Dict[
-            str, List[bittensor.StakeInfo]
-        ] = bittensor.StakeInfo.list_of_tuple_from_vec_u8(
-            list(bytes.fromhex(TEST_STAKE_INFO_HEX["vec vec normal"]))
+        stake_info_py_dict: Dict[str, List[bittensor.StakeInfo]] = (
+            bittensor.StakeInfo.list_of_tuple_from_vec_u8(
+                list(bytes.fromhex(TEST_STAKE_INFO_HEX["vec vec normal"]))
+            )
         )
 
         for stake_info_tuple, (coldkey, stake_info_py_list) in zip(
