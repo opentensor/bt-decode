@@ -15547,7 +15547,7 @@
                                 ]
                             },
                             {
-                                "name": "sudo_set_commit_reveal_weights_interval",
+                                "name": "sudo_set_commit_reveal_weights_periods",
                                 "fields": [
                                     {
                                         "name": "netuid",
