@@ -227,7 +227,7 @@ class SubnetHyperparameters:
     max_validators: int
     adjustment_alpha: int
     difficulty: int
-    commit_reveal_weights_periods: int
+    commit_reveal_periods: int
     commit_reveal_weights_enabled: bool
     alpha_high: int
     alpha_low: int

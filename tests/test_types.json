@@ -15562,7 +15562,7 @@
                                 ],
                                 "index": 48,
                                 "docs": [
-                                    "The extrinsic sets the commit/reveal interval for a subnet.",
+                                    "The extrinsic sets the commit/reveal period for a subnet.",
                                     "It is only callable by the root account or subnet owner.",
                                     "The extrinsic will call the Subtensor pallet to set the interval."
                                 ]
