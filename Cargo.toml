@@ -1,6 +1,6 @@
 [package]
 name = "bt_decode"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 
 [lib]
@@ -30,3 +30,4 @@ scale-info = { version = "2.11.2", features = [ "serde" ], default-features = fa
 serde_json = { version = "1.0.127", features = [ "alloc" ], default-features = false }
 scale-bits = { version = "0.4.0", default-features = false }
 scale-value = { version = "0.16.2", default-features = false }
+pythonize = "0.22.0"
