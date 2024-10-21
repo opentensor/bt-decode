@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 class AxonInfo:
     #  Axon serving block.
@@ -315,6 +315,8 @@ class MetadataV15:
         """
         Returns a JSON representation of the metadata.
         """
+        pass
+    def value(self) -> Dict[str, Any]:
         pass
 
 class PortableRegistry:

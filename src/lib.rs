@@ -329,6 +329,12 @@ mod bt_decode {
                 _ => panic!("Invalid metadata version"),
             }
         }
+
+        #[pyo3(name = "value")]
+        fn value(&self, py: Python) -> PyResult<Py<PyAny>> {
+            let dict = pythonize::pythonize(py, &self.metadata)?;
+            Ok(dict.into())
+        }
     }
 
     #[pyclass(name = "PortableRegistry")]
