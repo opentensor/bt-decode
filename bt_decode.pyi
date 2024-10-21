@@ -69,12 +69,8 @@ class NeuronInfo:
     dividends: int
     last_update: int
     validator_permit: bool
-    weights: List[
-        Tuple[int, int]  # Vec of (uid, weight)
-    ]
-    bonds: List[
-        Tuple[int, int]  # Vec of (uid, bond)
-    ]
+    weights: List[Tuple[int, int]]  # Vec of (uid, weight)
+    bonds: List[Tuple[int, int]]  # Vec of (uid, bond)
     pruning_score: int
 
     @staticmethod
