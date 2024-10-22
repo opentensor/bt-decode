@@ -16,12 +16,13 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
 name = "bt_decode"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "custom_derive",
  "frame-metadata 16.0.0",
  "parity-scale-codec",
  "pyo3",
+ "pythonize",
  "scale-bits 0.4.0",
  "scale-decode",
  "scale-info",
@@ -277,6 +278,16 @@ dependencies = [
  "pyo3-build-config",
  "quote",
  "syn 2.0.76",
+]
+
+[[package]]
+name = "pythonize"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90fcf491425978bd889015d5430f6473d91bdfa2097262f1e731aadcf6c2113e"
+dependencies = [
+ "pyo3",
+ "serde",
 ]
 
 [[package]]
