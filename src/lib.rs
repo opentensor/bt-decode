@@ -29,12 +29,17 @@ mod dyndecoder;
 
 #[pymodule(name = "bt_decode")]
 mod bt_decode {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, u128};
 
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
-    use pyo3::types::{PyDict, PyTuple};
-    use scale_value::{self, scale::decode_as_type, Composite, Primitive, Value, ValueDef};
+    use pyo3::types::{PyDict, PyList, PyString, PyTuple};
+    use scale_info::form::PortableForm;
+    use scale_value::{
+        self,
+        scale::{decode_as_type, encode_as_type},
+        Composite, Primitive, Value, ValueDef,
+    };
 
     use super::*;
 
@@ -449,6 +454,213 @@ mod bt_decode {
         }
     }
 
+    fn pyobject_to_value(
+        py: Python,
+        to_encode: &Py<PyAny>,
+        ty: &scale_info::Type<PortableForm>,
+        type_id: u32,
+        portable_registry: &PyPortableRegistry,
+    ) -> PyResult<Value<u32>> {
+        if let Ok(value) = to_encode.extract::<u128>(py) {
+            match &ty.type_def {
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::U128) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::U128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::U64) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::U128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::U32) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::U128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::U16) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::U128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::U8) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::U128(value)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for u128 data: {}",
+                        value
+                    )));
+                }
+            }
+        } else if let Ok(value) = to_encode.extract::<i128>(py) {
+            match ty.type_def {
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::I128) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::I128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::I64) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::I128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::I32) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::I128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::I16) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::I128(value)), type_id);
+                    return Ok(value);
+                }
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::I8) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::I128(value)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for i128 data: {}",
+                        value
+                    )));
+                }
+            }
+        } else if let Ok(value) = to_encode.extract::<bool>(py) {
+            match ty.type_def {
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Bool) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::Bool(value)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for bool data: {}",
+                        value
+                    )));
+                }
+            }
+        } else if let Ok(value) = to_encode.extract::<char>(py) {
+            match ty.type_def {
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Char) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::Char(value)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for char data: {}",
+                        value
+                    )));
+                }
+            }
+        } else if let Ok(value) = to_encode.extract::<String>(py) {
+            match ty.type_def {
+                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Str) => {
+                    let value =
+                        Value::with_context(ValueDef::Primitive(Primitive::String(value)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for string data: {}",
+                        value
+                    )));
+                }
+            }
+        } else if let Ok(value) = to_encode.downcast_bound::<PyTuple>(py) {
+            let tuple = value
+                .iter()
+                .zip(
+                    ty.type_params
+                        .iter()
+                        .filter(|ty_param| ty_param.ty.is_some()),
+                )
+                .map(|(item, ty_param)| {
+                    let ty_id_ = ty_param.ty.expect("Type parameter is not set");
+                    let ty_id: u32 = ty_id_.id;
+                    let ty_ = portable_registry
+                        .registry
+                        .resolve(ty_id)
+                        .expect("Failed to resolve type");
+                    pyobject_to_value(
+                        py,
+                        item.as_any().as_unbound(),
+                        &ty_,
+                        ty_id,
+                        portable_registry,
+                    )
+                })
+                .collect::<PyResult<Vec<Value<u32>>>>()?;
+            let value =
+                Value::with_context(ValueDef::Composite(Composite::Unnamed(tuple)), type_id);
+            return Ok(value);
+        } else if let Ok(value) = to_encode.downcast_bound::<PyList>(py) {
+            match &ty.type_def {
+                scale_info::TypeDef::Array(inner) => {
+                    let ty_param = inner.type_param;
+                    let ty_param_id: u32 = ty_param.id;
+                    let ty_ = portable_registry
+                        .registry
+                        .resolve(ty_param_id)
+                        .expect("Failed to resolve type");
+
+                    let list = value
+                        .iter()
+                        .map(|item| {
+                            pyobject_to_value(
+                                py,
+                                item.as_any().as_unbound(),
+                                &ty_,
+                                ty_param_id,
+                                portable_registry,
+                            )
+                        })
+                        .collect::<PyResult<Vec<Value<u32>>>>()?;
+
+                    let value =
+                        Value::with_context(ValueDef::Composite(Composite::Unnamed(list)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for list data: {}",
+                        value
+                    )));
+                }
+            }
+        } else if let Ok(value) = to_encode.downcast_bound::<PyDict>(py) {
+            let dict_items: Vec<(Py<PyAny>, Py<PyAny>)> = value
+                .items()
+                .extract::<Vec<(Py<PyAny>, Py<PyAny>)>>()
+                .expect("Failed to extract items from dict");
+            let dict = dict_items
+                .iter()
+                .map(|(key, val)| {
+                    Ok((
+                        key.downcast_bound::<PyString>(py)
+                            .expect("Failed to downcast key to string")
+                            .to_string_lossy()
+                            .to_string(),
+                        pyobject_to_value(py, val, ty, type_id, portable_registry)?,
+                    ))
+                })
+                .collect::<PyResult<Vec<(String, Value<u32>)>>>()?;
+            let value = Value::with_context(ValueDef::Composite(Composite::Named(dict)), type_id);
+            return Ok(value);
+        //} else if let Ok(value) = to_encode.downcast_bound::<PyBytes>(py) {
+        } else {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid type for data: {} of type {}",
+                to_encode,
+                to_encode.getattr(py, "__class__").unwrap_or(py.None())
+            )));
+        }
+    }
+
     #[pyfunction(name = "decode")]
     fn py_decode(
         py: Python,
@@ -470,5 +682,36 @@ mod bt_decode {
             decode_as_type(&mut &encoded[..], type_id, &curr_registry).expect("Failed to decode");
 
         value_to_pyobject(py, decoded)
+    }
+
+    #[pyfunction(name = "encode")]
+    fn py_encode(
+        py: Python,
+        type_string: &str,
+        portable_registry: &PyPortableRegistry,
+        to_encode: Py<PyAny>,
+    ) -> PyResult<Vec<u8>> {
+        // Create a memoization table for the type string to type id conversion
+        let mut memo = HashMap::<String, u32>::new();
+
+        let mut curr_registry = portable_registry.registry.clone();
+
+        fill_memo_using_well_known_types(&mut memo, &curr_registry);
+
+        let type_id: u32 = get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry)
+            .expect("Failed to get type id from type string");
+
+        let ty = portable_registry
+            .registry
+            .resolve(type_id)
+            .expect("Failed to resolve type");
+
+        let as_value: Value<u32> =
+            pyobject_to_value(py, &to_encode, ty, type_id, portable_registry)?;
+
+        let mut encoded: Vec<u8> = Vec::<u8>::new();
+        encode_as_type(&as_value, type_id, &curr_registry, &mut encoded).expect("Failed to encode");
+
+        Ok(encoded)
     }
 }
