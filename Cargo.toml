@@ -1,6 +1,6 @@
 [package]
 name = "bt_decode"
-version = "0.1.0"
+version = "0.3.0-a1"
 edition = "2021"
 
 [lib]
