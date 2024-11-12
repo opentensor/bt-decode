@@ -29,16 +29,16 @@ mod dyndecoder;
 
 #[pymodule(name = "bt_decode")]
 mod bt_decode {
-    use std::{collections::HashMap, u128};
+    use std::{any::Any, collections::HashMap, u128};
 
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
-    use pyo3::types::{PyDict, PyList, PyString, PyTuple};
+    use pyo3::types::{PyDict, PyInt, PyList, PySequence, PyTuple};
     use scale_info::form::PortableForm;
     use scale_value::{
         self,
         scale::{decode_as_type, encode_as_type},
-        Composite, Primitive, Value, ValueDef,
+        Composite, Primitive, Value, ValueDef, Variant,
     };
 
     use super::*;
@@ -454,14 +454,67 @@ mod bt_decode {
         }
     }
 
-    fn pyobject_to_value(
+    fn py_isinstance(py: Python, value: &Py<PyAny>, type_name: &str) -> PyResult<bool> {
+        let locals = PyDict::new_bound(py);
+        locals.set_item("value", value)?;
+
+        py.run_bound(
+            &*format!("ret = isinstance(value, {})", type_name),
+            None,
+            Some(&locals),
+        )
+        .map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Error checking isinstance of: {}: {:?}",
+                type_name, e
+            ))
+        })?;
+        let ret = locals.get_item("ret").unwrap().unwrap();
+        let result = ret.extract::<bool>()?;
+
+        Ok(result)
+    }
+
+    fn py_is_positive(py: Python, value: &Py<PyInt>) -> PyResult<bool> {
+        let locals = PyDict::new_bound(py);
+        locals.set_item("value", value)?;
+
+        py.run_bound("ret = value >= 0", None, Some(&locals))
+            .unwrap();
+        let ret = locals.get_item("ret").unwrap().unwrap();
+        let result = ret.extract::<bool>()?;
+
+        Ok(result)
+    }
+
+    fn py_has_dict_method(py: Python, value: &Py<PyAny>) -> PyResult<bool> {
+        let locals = PyDict::new_bound(py);
+        locals.set_item("value", value)?;
+
+        py.run_bound("ret = hasattr(value, \'__dict__\')", None, Some(&locals))
+            .unwrap();
+        let ret = locals.get_item("ret").unwrap().unwrap();
+        let result = ret.extract::<bool>()?;
+
+        Ok(result)
+    }
+
+    fn py_to_dict<'py>(py: Python<'py>, value: &Py<PyAny>) -> PyResult<Bound<'py, PyDict>> {
+        let ret = value.call_method0(py, "__dict__")?;
+
+        let result = ret.downcast_bound::<PyDict>(py)?;
+
+        Ok(result.clone())
+    }
+
+    fn int_type_def_to_value(
         py: Python,
-        to_encode: &Py<PyAny>,
+        py_int: &Py<PyInt>,
         ty: &scale_info::Type<PortableForm>,
         type_id: u32,
-        portable_registry: &PyPortableRegistry,
     ) -> PyResult<Value<u32>> {
-        if let Ok(value) = to_encode.extract::<u128>(py) {
+        if py_is_positive(py, py_int)? {
+            let value = py_int.extract::<u128>(py)?;
             match &ty.type_def {
                 scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::U128) => {
                     let value =
@@ -495,7 +548,8 @@ mod bt_decode {
                     )));
                 }
             }
-        } else if let Ok(value) = to_encode.extract::<i128>(py) {
+        } else {
+            let value = py_int.extract::<i128>(py)?;
             match ty.type_def {
                 scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::I128) => {
                     let value =
@@ -529,7 +583,123 @@ mod bt_decode {
                     )));
                 }
             }
-        } else if let Ok(value) = to_encode.extract::<bool>(py) {
+        }
+    }
+
+    fn pylist_to_value(
+        py: Python,
+        py_list: &Bound<'_, PyList>,
+        ty: &scale_info::Type<PortableForm>,
+        type_id: u32,
+        portable_registry: &PyPortableRegistry,
+    ) -> PyResult<Value<u32>> {
+        match &ty.type_def {
+            scale_info::TypeDef::Array(inner) => {
+                let ty_param = inner.type_param;
+                let ty_param_id: u32 = ty_param.id;
+                let ty_ = portable_registry
+                    .registry
+                    .resolve(ty_param_id)
+                    .expect(&format!("Failed to resolve type (1): {:?}", ty_param));
+
+                let items = py_list
+                    .iter()
+                    .map(|item| {
+                        pyobject_to_value(
+                            py,
+                            item.as_any().as_unbound(),
+                            &ty_,
+                            ty_param_id,
+                            portable_registry,
+                        )
+                    })
+                    .collect::<PyResult<Vec<Value<u32>>>>()?;
+
+                let value =
+                    Value::with_context(ValueDef::Composite(Composite::Unnamed(items)), type_id);
+                return Ok(value);
+            }
+            scale_info::TypeDef::Tuple(_inner) => {
+                let items = py_list
+                    .iter()
+                    .zip(
+                        ty.type_params
+                            .iter()
+                            .filter(|ty_param| ty_param.ty.is_some()),
+                    )
+                    .map(|(item, ty_param)| {
+                        let ty_id_ = ty_param.ty.expect("Type parameter is not set");
+                        let ty_id: u32 = ty_id_.id;
+                        let ty_ = portable_registry
+                            .registry
+                            .resolve(ty_id)
+                            .expect(&format!("Failed to resolve type (1): {:?}", ty_param.ty));
+                        pyobject_to_value(
+                            py,
+                            item.as_any().as_unbound(),
+                            &ty_,
+                            ty_id,
+                            portable_registry,
+                        )
+                    })
+                    .collect::<PyResult<Vec<Value<u32>>>>()?;
+
+                let value =
+                    Value::with_context(ValueDef::Composite(Composite::Unnamed(items)), type_id);
+                return Ok(value);
+            }
+            scale_info::TypeDef::Sequence(inner) => {
+                let ty_param = inner.type_param;
+                let ty_param_id: u32 = ty_param.id;
+                let ty_ = portable_registry
+                    .registry
+                    .resolve(ty_param_id)
+                    .expect(&format!("Failed to resolve type (1): {:?}", ty_param));
+
+                let items = py_list
+                    .iter()
+                    .map(|item| {
+                        pyobject_to_value(
+                            py,
+                            item.as_any().as_unbound(),
+                            &ty_,
+                            ty_param_id,
+                            portable_registry,
+                        )
+                    })
+                    .collect::<PyResult<Vec<Value<u32>>>>()?;
+
+                let value =
+                    Value::with_context(ValueDef::Composite(Composite::Unnamed(items)), type_id);
+                return Ok(value);
+            }
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for a list of data: {}",
+                    py_list
+                )));
+            }
+        }
+    }
+
+    fn pyobject_to_value_no_option_check(
+        py: Python,
+        to_encode: &Py<PyAny>,
+        ty: &scale_info::Type<PortableForm>,
+        type_id: u32,
+        portable_registry: &PyPortableRegistry,
+    ) -> PyResult<Value<u32>> {
+        if to_encode.is_none(py) {
+            // If none and NOT option,
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid type for None: {:?}",
+                ty.type_def
+            )));
+        }
+
+        if py_isinstance(py, to_encode, "bool")? {
+            let value = to_encode.extract::<bool>(py)?;
+
             match ty.type_def {
                 scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Bool) => {
                     let value =
@@ -543,115 +713,214 @@ mod bt_decode {
                     )));
                 }
             }
-        } else if let Ok(value) = to_encode.extract::<char>(py) {
-            match ty.type_def {
-                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Char) => {
-                    let value =
-                        Value::with_context(ValueDef::Primitive(Primitive::Char(value)), type_id);
-                    return Ok(value);
-                }
-                _ => {
-                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for char data: {}",
-                        value
-                    )));
-                }
-            }
-        } else if let Ok(value) = to_encode.extract::<String>(py) {
-            match ty.type_def {
-                scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Str) => {
-                    let value =
-                        Value::with_context(ValueDef::Primitive(Primitive::String(value)), type_id);
-                    return Ok(value);
-                }
-                _ => {
-                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for string data: {}",
-                        value
-                    )));
-                }
-            }
-        } else if let Ok(value) = to_encode.downcast_bound::<PyTuple>(py) {
-            let tuple = value
-                .iter()
-                .zip(
-                    ty.type_params
-                        .iter()
-                        .filter(|ty_param| ty_param.ty.is_some()),
+        } else if py_isinstance(py, to_encode, "str")? {
+            if to_encode.extract::<char>(py).is_ok()
+                && matches!(
+                    ty.type_def,
+                    scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Char)
                 )
-                .map(|(item, ty_param)| {
-                    let ty_id_ = ty_param.ty.expect("Type parameter is not set");
-                    let ty_id: u32 = ty_id_.id;
-                    let ty_ = portable_registry
-                        .registry
-                        .resolve(ty_id)
-                        .expect("Failed to resolve type");
-                    pyobject_to_value(
-                        py,
-                        item.as_any().as_unbound(),
-                        &ty_,
-                        ty_id,
-                        portable_registry,
-                    )
-                })
-                .collect::<PyResult<Vec<Value<u32>>>>()?;
-            let value =
-                Value::with_context(ValueDef::Composite(Composite::Unnamed(tuple)), type_id);
-            return Ok(value);
-        } else if let Ok(value) = to_encode.downcast_bound::<PyList>(py) {
-            match &ty.type_def {
-                scale_info::TypeDef::Array(inner) => {
-                    let ty_param = inner.type_param;
-                    let ty_param_id: u32 = ty_param.id;
-                    let ty_ = portable_registry
-                        .registry
-                        .resolve(ty_param_id)
-                        .expect("Failed to resolve type");
+            {
+                let char_value = to_encode.extract::<char>(py)?;
+                let value =
+                    Value::with_context(ValueDef::Primitive(Primitive::Char(char_value)), type_id);
 
-                    let list = value
-                        .iter()
-                        .map(|item| {
-                            pyobject_to_value(
-                                py,
-                                item.as_any().as_unbound(),
-                                &ty_,
-                                ty_param_id,
-                                portable_registry,
+                Ok(value)
+            } else if let Ok(str_value) = to_encode.extract::<String>(py) {
+                match ty.type_def {
+                    scale_info::TypeDef::Primitive(scale_info::TypeDefPrimitive::Str) => {
+                        let value = Value::with_context(
+                            ValueDef::Primitive(Primitive::String(str_value)),
+                            type_id,
+                        );
+                        return Ok(value);
+                    }
+                    _ => {
+                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                            "Invalid type for string data: {}",
+                            str_value
+                        )));
+                    }
+                }
+            } else {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for string data: {}",
+                    to_encode
+                )));
+            }
+        } else if py_isinstance(py, to_encode, "int")?
+            && matches!(&ty.type_def, scale_info::TypeDef::Primitive(_))
+        {
+            let as_py_int = to_encode.downcast_bound::<PyInt>(py)?.as_unbound();
+
+            return int_type_def_to_value(py, as_py_int, ty, type_id);
+        } else if py_isinstance(py, to_encode, "int")?
+            && matches!(&ty.type_def, scale_info::TypeDef::Compact(_))
+        {
+            // Must be a Compact int
+            let as_py_int = to_encode.downcast_bound::<PyInt>(py)?.as_unbound();
+
+            match &ty.type_def {
+                scale_info::TypeDef::Compact(inner) => {
+                    let inner_type_id = inner.type_param.id;
+                    let inner_type_ = portable_registry.registry.resolve(inner_type_id);
+                    if let Some(inner_type) = inner_type_ {
+                        let mut inner_value =
+                            int_type_def_to_value(py, as_py_int, inner_type, inner_type_id)?;
+                        inner_value.context = type_id;
+                        return Ok(inner_value);
+                    }
+                }
+                _ => {}
+            }
+
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid type for u128 data: {}",
+                to_encode
+            )));
+        } else if py_isinstance(py, to_encode, "tuple")? {
+            let tuple_value = to_encode.downcast_bound::<PyTuple>(py)?;
+            let as_list = tuple_value.to_list();
+
+            pylist_to_value(py, &as_list, ty, type_id, portable_registry).map_err(|_e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for tuple data: {}",
+                    tuple_value
+                ))
+            })
+        } else if py_isinstance(py, to_encode, "list")? {
+            let as_list = to_encode.downcast_bound::<PyList>(py)?;
+
+            pylist_to_value(py, &as_list, ty, type_id, portable_registry).map_err(|_e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for list data: {}",
+                    as_list
+                ))
+            })
+        } else if py_isinstance(py, to_encode, "dict")? {
+            let py_dict = to_encode.downcast_bound::<PyDict>(py)?;
+
+            match &ty.type_def {
+                scale_info::TypeDef::Composite(inner) => {
+                    let fields = &inner.fields;
+                    let mut dict: Vec<(String, Value<u32>)> = vec![];
+
+                    for field in fields.iter() {
+                        let field_name =
+                            field.name.clone().ok_or(PyErr::new::<
+                                pyo3::exceptions::PyValueError,
+                                _,
+                            >(format!(
+                                "Invalid type for dict, type: {:?}",
+                                ty.type_def
+                            )))?;
+
+                        let value_from_dict =
+                            py_dict.get_item(field_name.clone())?.ok_or(PyErr::new::<
+                                pyo3::exceptions::PyValueError,
+                                _,
+                            >(
+                                format!(
+                                "Invalid type for dict; missing field {}, type: {:?}",
+                                field_name.clone(),
+                                ty.type_def
                             )
-                        })
-                        .collect::<PyResult<Vec<Value<u32>>>>()?;
+                            ))?;
+
+                        let inner_type =
+                            portable_registry
+                                .registry
+                                .resolve(field.ty.id)
+                                .expect(&format!(
+                                    "Inner type: {:?} was not in registry after being registered",
+                                    field.ty
+                                ));
+
+                        let as_value = pyobject_to_value(
+                            py,
+                            value_from_dict.as_unbound(),
+                            inner_type,
+                            field.ty.id,
+                            portable_registry,
+                        )?;
+
+                        dict.push((field_name, as_value));
+                    }
 
                     let value =
-                        Value::with_context(ValueDef::Composite(Composite::Unnamed(list)), type_id);
+                        Value::with_context(ValueDef::Composite(Composite::Named(dict)), type_id);
                     return Ok(value);
                 }
                 _ => {
                     return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for list data: {}",
-                        value
+                        "Invalid type for dict data: {}",
+                        py_dict
                     )));
                 }
             }
-        } else if let Ok(value) = to_encode.downcast_bound::<PyDict>(py) {
-            let dict_items: Vec<(Py<PyAny>, Py<PyAny>)> = value
-                .items()
-                .extract::<Vec<(Py<PyAny>, Py<PyAny>)>>()
-                .expect("Failed to extract items from dict");
-            let dict = dict_items
-                .iter()
-                .map(|(key, val)| {
-                    Ok((
-                        key.downcast_bound::<PyString>(py)
-                            .expect("Failed to downcast key to string")
-                            .to_string_lossy()
-                            .to_string(),
-                        pyobject_to_value(py, val, ty, type_id, portable_registry)?,
-                    ))
-                })
-                .collect::<PyResult<Vec<(String, Value<u32>)>>>()?;
-            let value = Value::with_context(ValueDef::Composite(Composite::Named(dict)), type_id);
-            return Ok(value);
+
         //} else if let Ok(value) = to_encode.downcast_bound::<PyBytes>(py) {
+        } else if py_has_dict_method(py, to_encode)? {
+            // Convert object to dict
+            let py_dict = py_to_dict(py, to_encode)?;
+
+            match &ty.type_def {
+                scale_info::TypeDef::Composite(inner) => {
+                    let fields = &inner.fields;
+                    let mut dict: Vec<(String, Value<u32>)> = vec![];
+
+                    for field in fields.iter() {
+                        let field_name =
+                            field.name.clone().ok_or(PyErr::new::<
+                                pyo3::exceptions::PyValueError,
+                                _,
+                            >(format!(
+                                "Invalid type for dict, type: {:?}",
+                                ty.type_def
+                            )))?;
+
+                        let value_from_dict =
+                            py_dict.get_item(field_name.clone())?.ok_or(PyErr::new::<
+                                pyo3::exceptions::PyValueError,
+                                _,
+                            >(
+                                format!(
+                                "Invalid type for dict; missing field {}, type: {:?}",
+                                field_name.clone(),
+                                ty.type_def
+                            )
+                            ))?;
+
+                        let inner_type =
+                            portable_registry
+                                .registry
+                                .resolve(field.ty.id)
+                                .expect(&format!(
+                                    "Inner type: {:?} was not in registry after being registered",
+                                    field.ty
+                                ));
+
+                        let as_value = pyobject_to_value(
+                            py,
+                            value_from_dict.as_unbound(),
+                            inner_type,
+                            field.ty.id,
+                            portable_registry,
+                        )?;
+
+                        dict.push((field_name, as_value));
+                    }
+
+                    let value =
+                        Value::with_context(ValueDef::Composite(Composite::Named(dict)), type_id);
+                    return Ok(value);
+                }
+                _ => {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid type for dict data: {}",
+                        to_encode
+                    )));
+                }
+            }
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                 "Invalid type for data: {} of type {}",
@@ -659,6 +928,71 @@ mod bt_decode {
                 to_encode.getattr(py, "__class__").unwrap_or(py.None())
             )));
         }
+    }
+
+    fn pyobject_to_value(
+        py: Python,
+        to_encode: &Py<PyAny>,
+        ty: &scale_info::Type<PortableForm>,
+        type_id: u32,
+        portable_registry: &PyPortableRegistry,
+    ) -> PyResult<Value<u32>> {
+        // Check if the expected type is an option
+        match ty.type_def.clone() {
+            scale_info::TypeDef::Variant(inner) => {
+                let is_option: bool = if inner.variants.len() == 2 {
+                    let variant_names = inner
+                        .variants
+                        .iter()
+                        .map(|v| &*v.name)
+                        .collect::<Vec<&str>>();
+                    variant_names.contains(&"Some") && variant_names.contains(&"None")
+                } else {
+                    false
+                };
+
+                if is_option {
+                    if to_encode.is_none(py) {
+                        // None
+                        let none_variant: scale_value::Variant<u32> =
+                            Variant::unnamed_fields("None", vec![]); // No fields because it's None
+
+                        return Ok(Value::with_context(
+                            ValueDef::Variant(none_variant),
+                            type_id,
+                        ));
+                    } else {
+                        // Some
+                        // Get inner type
+                        let inner_type_id: u32 = inner.variants[1].fields[0].ty.id;
+                        let inner_type: &scale_info::Type<PortableForm> = portable_registry
+                            .registry
+                            .resolve(inner_type_id)
+                            .ok_or(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                                "Could not find inner_type: {:?} for Option: {:?}",
+                                ty.type_def, inner_type_id
+                            )))?;
+                        let inner_value: Value<u32> = pyobject_to_value_no_option_check(
+                            py,
+                            to_encode,
+                            inner_type,
+                            inner_type_id,
+                            portable_registry,
+                        )?;
+                        let some_variant: scale_value::Variant<u32> =
+                            Variant::unnamed_fields("Some", vec![inner_value]); // No fields because it's None
+
+                        return Ok(Value::with_context(
+                            ValueDef::Variant(some_variant),
+                            type_id,
+                        ));
+                    }
+                } // else: Regular conversion
+            }
+            _ => {} // Regular conversion
+        }
+
+        return pyobject_to_value_no_option_check(py, to_encode, ty, type_id, portable_registry);
     }
 
     #[pyfunction(name = "decode")]
@@ -701,10 +1035,9 @@ mod bt_decode {
         let type_id: u32 = get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry)
             .expect("Failed to get type id from type string");
 
-        let ty = portable_registry
-            .registry
+        let ty = curr_registry
             .resolve(type_id)
-            .expect("Failed to resolve type");
+            .expect(&format!("Failed to resolve type (0): {:?}", type_string));
 
         let as_value: Value<u32> =
             pyobject_to_value(py, &to_encode, ty, type_id, portable_registry)?;
