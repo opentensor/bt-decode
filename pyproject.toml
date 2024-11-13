@@ -1,6 +1,6 @@
 [project]
 name = "bt-decode"
-version = "0.3.0-a1"
+version = "0.4.0"
 description = "A wrapper around the scale-codec crate for fast scale-decoding of Bittensor data structures."
 readme = "README.md"
 license = {file = "LICENSE"}
