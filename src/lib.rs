@@ -29,12 +29,12 @@ mod dyndecoder;
 
 #[pymodule(name = "bt_decode")]
 mod bt_decode {
-    use std::{any::Any, collections::HashMap, u128};
+    use std::{collections::HashMap, u128};
 
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
-    use pyo3::types::{PyDict, PyInt, PyList, PySequence, PyTuple};
-    use scale_info::form::PortableForm;
+    use pyo3::types::{PyDict, PyInt, PyList, PyTuple};
+    use scale_info::{form::PortableForm, TypeDefComposite};
     use scale_value::{
         self,
         scale::{decode_as_type, encode_as_type},
@@ -620,20 +620,16 @@ mod bt_decode {
                 return Ok(value);
             }
             scale_info::TypeDef::Tuple(_inner) => {
+                dbg!(_inner, py_list);
                 let items = py_list
                     .iter()
-                    .zip(
-                        ty.type_params
-                            .iter()
-                            .filter(|ty_param| ty_param.ty.is_some()),
-                    )
-                    .map(|(item, ty_param)| {
-                        let ty_id_ = ty_param.ty.expect("Type parameter is not set");
-                        let ty_id: u32 = ty_id_.id;
+                    .zip(_inner.fields.clone())
+                    .map(|(item, ty_)| {
+                        let ty_id: u32 = ty_.id;
                         let ty_ = portable_registry
                             .registry
                             .resolve(ty_id)
-                            .expect(&format!("Failed to resolve type (1): {:?}", ty_param.ty));
+                            .expect(&format!("Failed to resolve type (1): {:?}", ty_));
                         pyobject_to_value(
                             py,
                             item.as_any().as_unbound(),
@@ -671,6 +667,38 @@ mod bt_decode {
 
                 let value =
                     Value::with_context(ValueDef::Composite(Composite::Unnamed(items)), type_id);
+                return Ok(value);
+            }
+            scale_info::TypeDef::Composite(TypeDefComposite { fields }) => {
+                if fields.len() == 0 {
+                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Unexpected 0 fields for unnamed composite type: {:?}",
+                        ty
+                    )));
+                }
+
+                let vals = fields
+                    .iter()
+                    .zip(py_list)
+                    .map(|(field, item)| {
+                        let ty_ = portable_registry
+                            .registry
+                            .resolve(field.ty.id)
+                            .expect(&format!("Failed to resolve type for field: {:?}", field));
+
+                        pyobject_to_value(
+                            py,
+                            item.as_any().as_unbound(),
+                            ty_,
+                            field.ty.id,
+                            portable_registry,
+                        )
+                        .unwrap()
+                    })
+                    .collect::<Vec<Value<u32>>>();
+
+                let value =
+                    Value::with_context(ValueDef::Composite(Composite::Unnamed(vals)), type_id);
                 return Ok(value);
             }
             _ => {
@@ -864,8 +892,7 @@ mod bt_decode {
             let py_dict = py_to_dict(py, to_encode)?;
 
             match &ty.type_def {
-                scale_info::TypeDef::Composite(inner) => {
-                    let fields = &inner.fields;
+                scale_info::TypeDef::Composite(TypeDefComposite { fields }) => {
                     let mut dict: Vec<(String, Value<u32>)> = vec![];
 
                     for field in fields.iter() {
