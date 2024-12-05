@@ -288,3 +288,41 @@ neurons_lite: List[NeuronInfoLite] = bt_decode.decode(
     )
 )
 ```
+
+### encode by type string
+*Note: This feature is unstable, but working for multiple types.*
+
+You may also encode using a type-string formed from existing types by passing the metadata as pulled from a node (or formed manually).
+```python
+import bittensor, bt_decode, scalecodec
+# Get subtensor connection
+sub = bittensor.subtensor()
+# Create a param for the RPC call, using v15 metadata
+v15_int = scalecodec.U32()
+v15_int.value = 15
+# Make the RPC call to grab the metadata
+metadata_rpc_result = sub.substrate.rpc_request("state_call", [
+    "Metadata_metadata_at_version",
+    v15_int.encode().to_hex(),
+    sub.substrate.get_chain_finalised_head()
+])
+# Decode the metadata into a PortableRegistry type
+metadata_option_hex_str = metadata_rpc_result['result']
+metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
+metadata_v15 = bt_decode.MetadataV15.decode_from_metadata_option(metadata_option_bytes)
+registry = bt_decode.PortableRegistry.from_metadata_v15( metadata_v15 )
+
+
+## Encode an integer as a compact u16
+compact_u16: list[int] = bt_decode.encode(
+    "Compact<u16>", # type-string,
+    2**16-1,
+    registry
+)
+# [254, 255, 3, 0]
+compact_u16_py_scale_codec = scalecodec.Compact()
+compact_u16_py_scale_codec.value = 2**16-1
+compact_u16_py_scale_codec.encode()
+
+assert list(compact_u16_py_scale_codec.data.data) == compact_u16
+```

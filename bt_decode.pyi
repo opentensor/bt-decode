@@ -349,3 +349,21 @@ def decode(
     type_string: str, portable_registry: PortableRegistry, encoded: bytes
 ) -> Any:
     pass
+
+def encode(
+    type_string: str, portable_registry: PortableRegistry, to_encode: Any
+) -> list[int]:
+    """
+    Encode a python object to bytes.
+
+    Returns a list of integers representing the encoded bytes.
+
+    Example:
+    >>> import bittensor as bt
+    >>> res = bt.decode.encode("u128", bt.decode.PortableRegistry.from_json(...), 1234567890)
+    >>> res
+    [210, 2, 150, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    >>> bytes(res).hex()
+    'd2029649000000000000000000000000'
+    """
+    pass
