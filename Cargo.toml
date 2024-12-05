@@ -13,7 +13,7 @@ name = "bt_decode"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
-version = "0.22.3"
+version = "0.23.3"
 features = ["extension-module"]
 
 [dependencies.custom_derive]
@@ -30,4 +30,4 @@ scale-info = { version = "2.11.2", features = [ "serde" ], default-features = fa
 serde_json = { version = "1.0.127", features = [ "alloc" ], default-features = false }
 scale-bits = { version = "0.4.0", default-features = false }
 scale-value = { version = "0.16.2", default-features = false }
-pythonize = "0.22.0"
+pythonize = "0.23.0"
