@@ -33,7 +33,7 @@ mod bt_decode {
 
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
-    use pyo3::types::{PyDict, PyInt, PyList, PyTuple};
+    use pyo3::types::{PyByteArray, PyDict, PyInt, PyList, PyTuple};
     use scale_info::{form::PortableForm, TypeDefComposite};
     use scale_value::{
         self,
@@ -500,7 +500,7 @@ mod bt_decode {
     }
 
     fn py_to_dict<'py>(py: Python<'py>, value: &Py<PyAny>) -> PyResult<Bound<'py, PyDict>> {
-        let ret = value.call_method0(py, "__dict__")?;
+        let ret = value.getattr(py, "__dict__")?;
 
         let result = ret.downcast_bound::<PyDict>(py)?;
 
@@ -710,7 +710,62 @@ mod bt_decode {
         }
     }
 
+    fn get_inner_type<'a>(
+        ty: &scale_info::Type<PortableForm>,
+        portable_registry: &'a PyPortableRegistry,
+    ) -> Option<(&'a scale_info::Type<PortableForm>, u32)> {
+        match &ty.type_def {
+            scale_info::TypeDef::Composite(inner) => {
+                if inner.fields.len() == 1 {
+                    // Check if the field has NO name
+                    if inner.fields[0].name.is_none() {
+                        let field_type = portable_registry.registry.resolve(inner.fields[0].ty.id);
+                        if field_type.is_some() {
+                            return Some((field_type.unwrap(), inner.fields[0].ty.id));
+                        } else {
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                } else {
+                    return None;
+                }
+            }
+            _ => None,
+        }
+    }
+
     fn pyobject_to_value_no_option_check(
+        py: Python,
+        to_encode: &Py<PyAny>,
+        ty: &scale_info::Type<PortableForm>,
+        type_id: u32,
+        portable_registry: &PyPortableRegistry,
+    ) -> PyResult<Value<u32>> {
+        if to_encode.is_none(py) {
+            // If none and NOT option,
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid type for None: {:?}",
+                ty.type_def
+            )));
+        }
+
+        // Get inner type in the case of composite types with a single, nameless field
+        if let Some((inner_type, inner_type_id)) = get_inner_type(ty, portable_registry) {
+            return pyobject_to_value(py, to_encode, inner_type, inner_type_id, portable_registry);
+        }
+
+        pyobject_to_value_no_option_check_no_inner_type(
+            py,
+            to_encode,
+            ty,
+            type_id,
+            portable_registry,
+        )
+    }
+
+    fn pyobject_to_value_no_option_check_no_inner_type(
         py: Python,
         to_encode: &Py<PyAny>,
         ty: &scale_info::Type<PortableForm>,
@@ -815,6 +870,18 @@ mod bt_decode {
                     tuple_value
                 ))
             })
+        } else if py_isinstance(py, to_encode, "bytearray")? {
+            let as_bytearray = to_encode.downcast_bound::<PyByteArray>(py)?;
+            let as_bytes = as_bytearray.to_vec();
+
+            let as_list = PyList::new(py, as_bytes)?;
+
+            pylist_to_value(py, &as_list, ty, type_id, portable_registry).map_err(|_e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for bytearray data: {}",
+                    as_bytearray
+                ))
+            })
         } else if py_isinstance(py, to_encode, "list")? {
             let as_list = to_encode.downcast_bound::<PyList>(py)?;
 
@@ -832,14 +899,36 @@ mod bt_decode {
                     let fields = &inner.fields;
                     let mut dict: Vec<(String, Value<u32>)> = vec![];
 
+                    if fields.len() == 1 {
+                        // Special case for single field
+                        // Check if the field has NO name
+                        if fields[0].name.is_none() {
+                            // Extract the inner type
+                            let inner_type = portable_registry
+                                .registry
+                                .resolve(fields[0].ty.id)
+                                .expect(&format!(
+                                    "Inner type: {:?} was not in registry after being registered",
+                                    fields[0].ty
+                                ));
+                            return pyobject_to_value(
+                                py,
+                                to_encode,
+                                inner_type,
+                                fields[0].ty.id,
+                                portable_registry,
+                            );
+                        }
+                    }
+
                     for field in fields.iter() {
                         let field_name =
                             field.name.clone().ok_or(PyErr::new::<
                                 pyo3::exceptions::PyValueError,
                                 _,
                             >(format!(
-                                "Invalid type for dict, type: {:?}",
-                                ty.type_def
+                                "Invalid type for dict, type: {:?}\ndict: {:?}",
+                                ty.type_def, py_dict
                             )))?;
 
                         let value_from_dict =
@@ -848,9 +937,10 @@ mod bt_decode {
                                 _,
                             >(
                                 format!(
-                                "Invalid type for dict; missing field {}, type: {:?}",
+                                "Invalid type for dict; missing field {}, type: {:?}\ndict: {:?}",
                                 field_name.clone(),
-                                ty.type_def
+                                ty.type_def,
+                                py_dict
                             )
                             ))?;
 
@@ -880,8 +970,8 @@ mod bt_decode {
                 }
                 _ => {
                     return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for dict data: {}",
-                        py_dict
+                        "Invalid type for dict data. type: {:?}\ndict: {:?}",
+                        ty.type_def, py_dict
                     )));
                 }
             }
@@ -895,14 +985,36 @@ mod bt_decode {
                 scale_info::TypeDef::Composite(TypeDefComposite { fields }) => {
                     let mut dict: Vec<(String, Value<u32>)> = vec![];
 
+                    if fields.len() == 1 {
+                        // Special case for single field
+                        // Check if the field has NO name
+                        if fields[0].name.is_none() {
+                            // Extract the inner type
+                            let inner_type = portable_registry
+                                .registry
+                                .resolve(fields[0].ty.id)
+                                .expect(&format!(
+                                    "Inner type: {:?} was not in registry after being registered",
+                                    fields[0].ty
+                                ));
+                            return pyobject_to_value(
+                                py,
+                                to_encode,
+                                inner_type,
+                                fields[0].ty.id,
+                                portable_registry,
+                            );
+                        }
+                    }
+
                     for field in fields.iter() {
                         let field_name =
                             field.name.clone().ok_or(PyErr::new::<
                                 pyo3::exceptions::PyValueError,
                                 _,
                             >(format!(
-                                "Invalid type for dict, type: {:?}",
-                                ty.type_def
+                                "Invalid type for dict, type: {:?}\ndict: {:?}",
+                                ty.type_def, py_dict
                             )))?;
 
                         let value_from_dict =
@@ -911,9 +1023,10 @@ mod bt_decode {
                                 _,
                             >(
                                 format!(
-                                "Invalid type for dict; missing field {}, type: {:?}",
+                                "Invalid type for dict; missing field {}, type: {:?}\ndict: {:?}",
                                 field_name.clone(),
-                                ty.type_def
+                                ty.type_def,
+                                py_dict
                             )
                             ))?;
 
@@ -935,6 +1048,28 @@ mod bt_decode {
                         )?;
 
                         dict.push((field_name, as_value));
+                        if fields.len() == 1 {
+                            // Special case for single field
+                            // Check if the field has a name
+                            if fields[0].name.is_some() {
+                                // Extract the inner type
+                                let inner_type =
+                                    portable_registry
+                                        .registry
+                                        .resolve(fields[0].ty.id)
+                                        .expect(&format!(
+                                            "Inner type: {:?} was not in registry after being registered",
+                                            fields[0].ty
+                                        ));
+                                return pyobject_to_value(
+                                    py,
+                                    to_encode,
+                                    inner_type,
+                                    fields[0].ty.id,
+                                    portable_registry,
+                                );
+                            }
+                        }
                     }
 
                     let value =
@@ -943,16 +1078,17 @@ mod bt_decode {
                 }
                 _ => {
                     return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for dict data: {}",
-                        to_encode
+                        "Invalid type for dict data. type: {:?}\ndict: {:?}",
+                        ty.type_def, py_dict
                     )));
                 }
             }
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid type for data: {} of type {}",
+                "Invalid type for data: {} of type {}\ntype_string: {}",
                 to_encode,
-                to_encode.getattr(py, "__class__").unwrap_or(py.None())
+                to_encode.getattr(py, "__class__").unwrap_or(py.None()),
+                type_id
             )));
         }
     }
