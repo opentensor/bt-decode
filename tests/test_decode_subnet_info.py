@@ -39,6 +39,7 @@ ATTR_NAME_FIXES: Dict[str, str] = {
     "network_connect": "connection_requirements",
     "network_modality": "modality",
     "owner": "owner_ss58",
+    "blocks_since_last_step": "blocks_since_epoch",
 }
 
 
@@ -64,7 +65,13 @@ class TestDecodeSubnetInfo(unittest.TestCase):
             if not attr.startswith("__") and not callable(getattr(subnet_info, attr)):
                 attr_count += 1
 
-                attr_py = py_getattr(subnet_info_py, attr)
+                try:
+                    attr_py = py_getattr(subnet_info_py, attr)
+                except AttributeError as e:
+                    print(f"Error getting attribute {attr}: {e}")
+                    print(subnet_info_py)
+                    raise e
+
                 if dataclasses.is_dataclass(attr_py):
                     attr_rs = getattr(subnet_info, attr)
 
@@ -114,7 +121,7 @@ class TestDecodeSubnetInfo(unittest.TestCase):
 
         subnet_info_list_py = (
             bittensor.SubnetInfo.list_from_vec_u8(  # Option specified internally
-                list(TEST_SUBNET_INFO_HEX["vec option normal"]())
+                TEST_SUBNET_INFO_HEX["vec option normal"]()
             )
         )
 
@@ -130,7 +137,13 @@ class TestDecodeSubnetInfo(unittest.TestCase):
                 ):
                     attr_count += 1
 
-                    attr_py = py_getattr(subnet_info_py, attr)
+                    try:
+                        attr_py = py_getattr(subnet_info_py, attr)
+                    except AttributeError as e:
+                        print(f"Error getting attribute {attr}: {e}")
+                        print(subnet_info_py)
+                        raise e
+
                     if dataclasses.is_dataclass(attr_py):
                         attr_rs = getattr(subnet_info, attr)
 
