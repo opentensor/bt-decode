@@ -7,7 +7,6 @@ import bt_decode
 import bittensor
 
 from . import (
-    get_file_bytes,
     fix_field as fix_field_fixes,
     py_getattr as py_getattr_fixes,
 )
@@ -21,15 +20,13 @@ TEST_SUBNET_HYP_HEX = {
 FIELD_FIXES: Dict[str, Callable] = {
     # None
 }
-fix_field = lambda key, value, parent_key=None: fix_field_fixes(
-    FIELD_FIXES, key, value, parent_key
-)
+def fix_field(key, value, parent_key=None):
+    return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
 
 ATTR_NAME_FIXES: Dict[str, str] = {"max_weights_limit": "max_weight_limit"}
 
-py_getattr = lambda obj, attr, parent_name=None: py_getattr_fixes(
-    ATTR_NAME_FIXES, obj, attr, parent_name
-)
+def py_getattr(obj, attr, parent_name=None):
+    return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)
 
 
 class TestDecodeSubnetHyperparameters(unittest.TestCase):

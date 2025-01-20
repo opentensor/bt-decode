@@ -1,18 +1,8 @@
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Dict, Tuple
 
-import dataclasses
-import unittest
 import pytest
 
 import bt_decode
-import substrateinterface, scalecodec
-import bittensor
-
-from . import (
-    get_file_bytes,
-    fix_field as fix_field_fixes,
-    py_getattr as py_getattr_fixes,
-)
 
 
 TEST_TYPE_STRING_SCALE_INFO_DECODING: Dict[str, Tuple[str, Any]] = {

@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 import dataclasses
 import netaddr
@@ -44,18 +44,16 @@ FIELD_FIXES: Dict[str, Callable] = {
     "weights": lambda x: [[e[0], e[1]] for e in x],
 }
 
-fix_field = lambda key, value, parent_key=None: fix_field_fixes(
-    FIELD_FIXES, key, value, parent_key
-)
+def fix_field(key, value, parent_key=None):
+    return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
 
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     # None
 }
 
-py_getattr = lambda obj, attr, parent_name=None: py_getattr_fixes(
-    ATTR_NAME_FIXES, obj, attr, parent_name
-)
+def py_getattr(obj, attr, parent_name=None):
+    return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)
 
 
 class TestDecodeNeuronInfoLite(unittest.TestCase):
