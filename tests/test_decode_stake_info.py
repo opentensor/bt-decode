@@ -21,14 +21,18 @@ FIELD_FIXES: Dict[str, Callable] = {
     "coldkey": lambda x: bittensor.u8_key_to_ss58(x),
     "hotkey": lambda x: bittensor.u8_key_to_ss58(x),
 }
+
+
 def fix_field(key, value, parent_key=None):
     return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
+
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     # None
     "coldkey": "coldkey_ss58",
     "hotkey": "hotkey_ss58",
 }
+
 
 def py_getattr(obj, attr, parent_name=None):
     return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)

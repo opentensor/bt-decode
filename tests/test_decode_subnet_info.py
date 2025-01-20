@@ -26,8 +26,11 @@ FIELD_FIXES: Dict[str, Callable] = {
     },
     "owner": lambda x: bittensor.u8_key_to_ss58(x),
 }
+
+
 def fix_field(key, value, parent_key=None):
     return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
+
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     "emission_values": "emission_value",
@@ -37,6 +40,7 @@ ATTR_NAME_FIXES: Dict[str, str] = {
     "network_modality": "modality",
     "owner": "owner_ss58",
 }
+
 
 def py_getattr(obj, attr, parent_name=None):
     return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)

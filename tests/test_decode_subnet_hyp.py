@@ -20,10 +20,14 @@ TEST_SUBNET_HYP_HEX = {
 FIELD_FIXES: Dict[str, Callable] = {
     # None
 }
+
+
 def fix_field(key, value, parent_key=None):
     return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
 
+
 ATTR_NAME_FIXES: Dict[str, str] = {"max_weights_limit": "max_weight_limit"}
+
 
 def py_getattr(obj, attr, parent_name=None):
     return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)
