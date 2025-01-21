@@ -11,6 +11,7 @@ from . import (
     fix_field as fix_field_fixes,
     py_getattr as py_getattr_fixes,
 )
+from .utils import chain_data
 
 TEST_SUBNET_INFO_HEX = {
     "normal": "0828feff010013ffffffffffffffff214e010104feff0300c8010401040d03a1050000c28ff4070398b6d54370c07a546ab0bab5ca9847eb5890ada1bda127633e607097ad4517dd2ca0f010",
@@ -56,7 +57,7 @@ class TestDecodeSubnetInfo(unittest.TestCase):
             bytes.fromhex(TEST_SUBNET_INFO_HEX["normal"])
         )
 
-        subnet_info_py = bittensor.SubnetInfo.from_vec_u8(
+        subnet_info_py = chain_data.SubnetInfo.from_vec_u8(
             list(bytes.fromhex(TEST_SUBNET_INFO_HEX["normal"]))
         )
 
@@ -120,7 +121,7 @@ class TestDecodeSubnetInfo(unittest.TestCase):
         )
 
         subnet_info_list_py = (
-            bittensor.SubnetInfo.list_from_vec_u8(  # Option specified internally
+            chain_data.SubnetInfo.list_from_vec_u8(  # Option specified internally
                 TEST_SUBNET_INFO_HEX["vec option normal"]()
             )
         )
