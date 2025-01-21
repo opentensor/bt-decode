@@ -10,6 +10,7 @@ from . import (
     fix_field as fix_field_fixes,
     py_getattr as py_getattr_fixes,
 )
+from .utils import chain_data
 
 TEST_STAKE_INFO_HEX = {
     "vec normal": "08e4df2c7397e1443378b4cec0f2fca9dac1d0923d020e7aab11dd41428014ab595c40bc195cb2fd36b8b0e2397087c73b555b81e0bfe2975a40b9f78e039d44420759e02b6017ae4f8eac06ab73ff50aa97c0aafd27cd5c311e2fbbe5628f24901f4e3e1b06695c40bc195cb2fd36b8b0e2397087c73b555b81e0bfe2975a40b9f78e039d4442e25c4a0c",
@@ -49,8 +50,8 @@ class TestDecodeStakeInfo(unittest.TestCase):
             bytes.fromhex(TEST_STAKE_INFO_HEX["vec normal"])
         )
 
-        stake_info_py_list: List[bittensor.StakeInfo] = (
-            bittensor.StakeInfo.list_from_vec_u8(
+        stake_info_py_list: List[chain_data.StakeInfo] = (
+            chain_data.StakeInfo.list_from_vec_u8(
                 list(bytes.fromhex(TEST_STAKE_INFO_HEX["vec normal"]))
             )
         )
@@ -95,8 +96,8 @@ class TestDecodeStakeInfo(unittest.TestCase):
         )
 
         # Poor method name, should be dict_of_list_from_vec_u8
-        stake_info_py_dict: Dict[str, List[bittensor.StakeInfo]] = (
-            bittensor.StakeInfo.list_of_tuple_from_vec_u8(
+        stake_info_py_dict: Dict[str, List[chain_data.StakeInfo]] = (
+            chain_data.StakeInfo.list_of_tuple_from_vec_u8(
                 list(bytes.fromhex(TEST_STAKE_INFO_HEX["vec vec normal"]))
             )
         )

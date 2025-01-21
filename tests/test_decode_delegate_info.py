@@ -11,6 +11,7 @@ from . import (
     fix_field as fix_field_fixes,
     py_getattr as py_getattr_fixes,
 )
+from .utils import chain_data
 
 TEST_DELEGATE_INFO_HEX = {
     "delegated normal": lambda: get_file_bytes("tests/delegated_info.hex"),
@@ -54,7 +55,7 @@ class TestDecodeDelegateInfo(unittest.TestCase):
             )
         )
 
-        delegate_info_py_list = bittensor.DelegateInfo.delegated_list_from_vec_u8(
+        delegate_info_py_list = chain_data.DelegateInfo.delegated_list_from_vec_u8(
             list(TEST_DELEGATE_INFO_HEX["delegated normal"]())
         )
 
@@ -102,8 +103,8 @@ class TestDecodeDelegateInfo(unittest.TestCase):
             bt_decode.DelegateInfo.decode_vec(TEST_DELEGATE_INFO_HEX["vec normal"]())
         )
 
-        delegates_info_py: List[bittensor.DelegateInfo] = (
-            bittensor.DelegateInfo.list_from_vec_u8(
+        delegates_info_py: List[chain_data.DelegateInfo] = (
+            chain_data.DelegateInfo.list_from_vec_u8(
                 list(TEST_DELEGATE_INFO_HEX["vec normal"]())
             )
         )
