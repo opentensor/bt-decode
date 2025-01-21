@@ -162,39 +162,39 @@ TEST_TYPE_STRING_SCALE_INFO_DECODING: Dict[str, Tuple[str, Any]] = {
 }
 
 
-TEST_TYPE_STRING_PLAIN_DECODING: Dict[str, Tuple[str, Any]] = {
-    "bool": ("01", True),
-    "bool ": ("00", False),
-    "u8": ("01", 1),
-    "u16": ("0100", 1),
-    "u32": ("01000000", 1),
-    "u64": ("0100000000000000", 1),
-    "u128": ("01000000000000000000000000000000", 1),
-    "Compact<u8>": ("00", 0),
-    "Compact<u8> ": ("fd03", 2**8 - 1),
-    "Compact<u16>": ("feff0300", 2**16 - 1),
-    "Compact<u32>": ("03ffffffff", 2**32 - 1),
-    "Compact<u64>": ("13ffffffffffffffff", 2**64 - 1),
-    "Option<u8>": ("010c", 12),
-    "Option<u8>": ("00", None),
-    "Option<u32>": ("00", None),
-    "Option<u32> ": ("0101000000", 1), 
-    "()": ("", ()),
-    "[u8; 4]": ("62616265", (98, 97, 98, 101)),
-    "[u8; 4]": ("62616265", [98, 97, 98, 101]),
-    "Vec<u8>": ("0c010203", (1, 2, 3)),
-    "Vec<u8> ": ("00", []),
-    "Vec<u8> ": ("00", ()),
-    "(u8, u16) ": ("7bffff", (123, 2**16-1)),
-    "str": ("0c666f6f", "foo"),
-}
+TEST_TYPE_STRING_PLAIN_DECODING: list[tuple[str, tuple[str, Any]]] = [
+    ("bool", ("01", True)),
+    ("bool ", ("00", False)),
+    ("u8", ("01", 1)),
+    ("u16", ("0100", 1)),
+    ("u32", ("01000000", 1)),
+    ("u64", ("0100000000000000", 1)),
+    ("u128", ("01000000000000000000000000000000", 1)),
+    ("Compact<u8>", ("00", 0)),
+    ("Compact<u8> ", ("fd03", 2**8 - 1)),
+    ("Compact<u16>", ("feff0300", 2**16 - 1)),
+    ("Compact<u32>", ("03ffffffff", 2**32 - 1)),
+    ("Compact<u64>", ("13ffffffffffffffff", 2**64 - 1)),
+    ("Option<u8>", ("010c", 12)),
+    ("Option<u8>", ("00", None)),
+    ("Option<u32>", ("00", None)),
+    ("Option<u32> ", ("0101000000", 1)),
+    ("()", ("", ())),
+    ("[u8; 4]", ("62616265", (98, 97, 98, 101))),
+    ("[u8; 4]", ("62616265", [98, 97, 98, 101])),
+    ("Vec<u8>", ("0c010203", (1, 2, 3))),
+    ("Vec<u8> ", ("00", [])),
+    ("Vec<u8> ", ("00", ())),
+    ("(u8, u16) ", ("7bffff", (123, 2**16 - 1))),
+    ("str", ("0c666f6f", "foo")),
+]
 
 TEST_TYPES_JSON = "tests/test_types.json"
 
 
 @pytest.mark.parametrize(
     "type_string,test_hex,test_value",
-    [(x, y, z) for x, (y, z) in TEST_TYPE_STRING_PLAIN_DECODING.items()],
+    [(x, y, z) for x, (y, z) in TEST_TYPE_STRING_PLAIN_DECODING],
 )
 class TestEncodeByPlainTypeString:
     # Test combinations of human-readable type strings and hex-encoded values

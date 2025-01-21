@@ -26,9 +26,11 @@ FIELD_FIXES: Dict[str, Callable] = {
     },
     "owner": lambda x: bittensor.u8_key_to_ss58(x),
 }
-fix_field = lambda key, value, parent_key=None: fix_field_fixes(
-    FIELD_FIXES, key, value, parent_key
-)
+
+
+def fix_field(key, value, parent_key=None):
+    return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
+
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     "emission_values": "emission_value",
@@ -37,11 +39,12 @@ ATTR_NAME_FIXES: Dict[str, str] = {
     "network_connect": "connection_requirements",
     "network_modality": "modality",
     "owner": "owner_ss58",
+    "blocks_since_last_step": "blocks_since_epoch",
 }
 
-py_getattr = lambda obj, attr, parent_name=None: py_getattr_fixes(
-    ATTR_NAME_FIXES, obj, attr, parent_name
-)
+
+def py_getattr(obj, attr, parent_name=None):
+    return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)
 
 
 class TestDecodeSubnetInfo(unittest.TestCase):
@@ -62,7 +65,13 @@ class TestDecodeSubnetInfo(unittest.TestCase):
             if not attr.startswith("__") and not callable(getattr(subnet_info, attr)):
                 attr_count += 1
 
-                attr_py = py_getattr(subnet_info_py, attr)
+                try:
+                    attr_py = py_getattr(subnet_info_py, attr)
+                except AttributeError as e:
+                    print(f"Error getting attribute {attr}: {e}")
+                    print(subnet_info_py)
+                    raise e
+
                 if dataclasses.is_dataclass(attr_py):
                     attr_rs = getattr(subnet_info, attr)
 
@@ -112,7 +121,7 @@ class TestDecodeSubnetInfo(unittest.TestCase):
 
         subnet_info_list_py = (
             bittensor.SubnetInfo.list_from_vec_u8(  # Option specified internally
-                list(TEST_SUBNET_INFO_HEX["vec option normal"]())
+                TEST_SUBNET_INFO_HEX["vec option normal"]()
             )
         )
 
@@ -128,7 +137,13 @@ class TestDecodeSubnetInfo(unittest.TestCase):
                 ):
                     attr_count += 1
 
-                    attr_py = py_getattr(subnet_info_py, attr)
+                    try:
+                        attr_py = py_getattr(subnet_info_py, attr)
+                    except AttributeError as e:
+                        print(f"Error getting attribute {attr}: {e}")
+                        print(subnet_info_py)
+                        raise e
+
                     if dataclasses.is_dataclass(attr_py):
                         attr_rs = getattr(subnet_info, attr)
 

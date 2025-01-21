@@ -25,18 +25,20 @@ FIELD_FIXES: Dict[str, Callable] = {
     "take": lambda x: bittensor.U16_NORMALIZED_FLOAT(x),
     "nominators": lambda x: [(bittensor.u8_key_to_ss58(e[0]), e[1]) for e in x],
 }
-fix_field = lambda key, value, parent_key=None: fix_field_fixes(
-    FIELD_FIXES, key, value, parent_key
-)
+
+
+def fix_field(key, value, parent_key=None):
+    return fix_field_fixes(FIELD_FIXES, key, value, parent_key)
+
 
 ATTR_NAME_FIXES: Dict[str, str] = {
     # None
     "delegate_ss58": "hotkey_ss58",
 }
 
-py_getattr = lambda obj, attr, parent_name=None: py_getattr_fixes(
-    ATTR_NAME_FIXES, obj, attr, parent_name
-)
+
+def py_getattr(obj, attr, parent_name=None):
+    return py_getattr_fixes(ATTR_NAME_FIXES, obj, attr, parent_name)
 
 
 class TestDecodeDelegateInfo(unittest.TestCase):
