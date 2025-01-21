@@ -4,14 +4,16 @@ import dataclasses
 import netaddr
 import unittest
 
-import bt_decode
 import bittensor
+import bt_decode
 
 from . import (
     get_file_bytes,
     fix_field as fix_field_fixes,
     py_getattr as py_getattr_fixes,
 )
+
+from .utils import chain_data
 
 TEST_NEURON_INFO_LITE_HEX = {
     "normal": "fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c0008010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000041cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c0bbb22f41921010bbb22f41921010bbb22f4192101000007989cc65f0100000000009801feff0300",
@@ -69,7 +71,7 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
             bytes.fromhex(TEST_NEURON_INFO_LITE_HEX["normal"])
         )
 
-        neuron_info_py = bittensor.NeuronInfoLite.from_vec_u8(
+        neuron_info_py = chain_data.NeuronInfoLite.from_vec_u8(
             list(bytes.fromhex(TEST_NEURON_INFO_LITE_HEX["normal"]))
         )
 
@@ -112,8 +114,8 @@ class TestDecodeNeuronInfoLite(unittest.TestCase):
             )
         )
 
-        neurons_info_py: List[bittensor.NeuronInfoLite] = (
-            bittensor.NeuronInfoLite.list_from_vec_u8(
+        neurons_info_py: List[chain_data.NeuronInfoLite] = (
+            chain_data.NeuronInfoLite.list_from_vec_u8(
                 list(TEST_NEURON_INFO_LITE_HEX["vec normal"]())
             )
         )
@@ -159,7 +161,7 @@ class TestDecodeNeuronInfo(unittest.TestCase):
             bytes.fromhex(TEST_NEURON_INFO_HEX["normal"])
         )
 
-        neuron_info_py = bittensor.NeuronInfo.from_vec_u8(
+        neuron_info_py = chain_data.NeuronInfo.from_vec_u8(
             list(bytes.fromhex(TEST_NEURON_INFO_HEX["normal"]))
         )
 
@@ -198,8 +200,8 @@ class TestDecodeNeuronInfo(unittest.TestCase):
             TEST_NEURON_INFO_HEX["vec normal"]()
         )
 
-        neurons_info_py: List[bittensor.NeuronInfo] = (
-            bittensor.NeuronInfo.list_from_vec_u8(
+        neurons_info_py: List[chain_data.NeuronInfo] = (
+            chain_data.NeuronInfo.list_from_vec_u8(
                 list(TEST_NEURON_INFO_HEX["vec normal"]())
             )
         )
