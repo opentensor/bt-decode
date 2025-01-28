@@ -31,3 +31,5 @@ serde_json = { version = "1.0.127", features = [ "alloc" ], default-features = f
 scale-bits = { version = "0.4.0", default-features = false }
 scale-value = { version = "0.16.2", default-features = false }
 pythonize = "0.23.0"
+log = { version = "0.4.25", default-features = false }
+pyo3-log = { version = "0.12.1", default-features = false }
