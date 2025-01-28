@@ -1,6 +1,7 @@
 use codec::{Decode, Encode};
 use custom_derive::pydecode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
+use log;
 
 use pyo3::prelude::*;
 
@@ -599,6 +600,8 @@ mod bt_decode {
         type_id: u32,
         portable_registry: &PyPortableRegistry,
     ) -> PyResult<Value<u32>> {
+        log::debug!(target: "btdecode", "encoding a list-like type {:?}", py_list);
+        log::debug!(target: "btdecode", "type_id: {:?}", type_id);
         match &ty.type_def {
             scale_info::TypeDef::Array(inner) => {
                 let ty_param = inner.type_param;
@@ -607,6 +610,9 @@ mod bt_decode {
                     .registry
                     .resolve(ty_param_id)
                     .expect(&format!("Failed to resolve type (1): {:?}", ty_param));
+                log::debug!(target: "btdecode", "ty_param: {:?}", ty_param);
+                log::debug!(target: "btdecode", "ty_param_id: {:?}", ty_param_id);
+                log::debug!(target: "btdecode", "ty_: {:?}", ty_);
 
                 let items = py_list
                     .iter()
@@ -723,6 +729,9 @@ mod bt_decode {
         type_id: u32,
         portable_registry: &PyPortableRegistry,
     ) -> PyResult<Value<u32>> {
+        log::debug!(target: "btdecode", "encoding a non-option type {:?} {:?}", ty, to_encode);
+        log::debug!(target: "btdecode", "type_id: {:?}", type_id);
+
         if to_encode.is_none(py) {
             // If none and NOT option,
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -732,6 +741,7 @@ mod bt_decode {
         }
 
         if py_isinstance(py, to_encode, "bool")? {
+            log::debug!(target: "btdecode", "encoding to bool");
             let value = to_encode.extract::<bool>(py)?;
 
             match ty.type_def {
@@ -748,6 +758,7 @@ mod bt_decode {
                 }
             }
         } else if py_isinstance(py, to_encode, "str")? {
+            log::debug!(target: "btdecode", "encoding to str");
             if to_encode.extract::<char>(py).is_ok()
                 && matches!(
                     ty.type_def,
@@ -784,12 +795,14 @@ mod bt_decode {
         } else if py_isinstance(py, to_encode, "int")?
             && matches!(&ty.type_def, scale_info::TypeDef::Primitive(_))
         {
+            log::debug!(target: "btdecode", "encoding as primitive int");
             let as_py_int = to_encode.downcast_bound::<PyInt>(py)?.as_unbound();
 
             return int_type_def_to_value(py, as_py_int, ty, type_id);
         } else if py_isinstance(py, to_encode, "int")?
             && matches!(&ty.type_def, scale_info::TypeDef::Compact(_))
         {
+            log::debug!(target: "btdecode", "encoding as compact int");
             // Must be a Compact int
             let as_py_int = to_encode.downcast_bound::<PyInt>(py)?.as_unbound();
 
@@ -812,6 +825,7 @@ mod bt_decode {
                 to_encode
             )));
         } else if py_isinstance(py, to_encode, "tuple")? {
+            log::debug!(target: "btdecode", "encoding as tuple");
             let tuple_value = to_encode.downcast_bound::<PyTuple>(py)?;
             let as_list = tuple_value.to_list();
 
@@ -822,6 +836,7 @@ mod bt_decode {
                 ))
             })
         } else if py_isinstance(py, to_encode, "list")? {
+            log::debug!(target: "btdecode", "encoding as list");
             let as_list = to_encode.downcast_bound::<PyList>(py)?;
 
             pylist_to_value(py, &as_list, ty, type_id, portable_registry).map_err(|_e| {
@@ -831,6 +846,7 @@ mod bt_decode {
                 ))
             })
         } else if py_isinstance(py, to_encode, "dict")? {
+            log::debug!(target: "btdecode", "encoding as dict");
             let py_dict = to_encode.downcast_bound::<PyDict>(py)?;
 
             match &ty.type_def {
@@ -894,6 +910,7 @@ mod bt_decode {
 
         //} else if let Ok(value) = to_encode.downcast_bound::<PyBytes>(py) {
         } else if py_has_dict_method(py, to_encode)? {
+            log::debug!(target: "btdecode", "encoding object as dict");
             // Convert object to dict
             let py_dict = py_to_dict(py, to_encode)?;
 
@@ -956,9 +973,10 @@ mod bt_decode {
             }
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid type for data: {} of type {}",
+                "Invalid type for data: {} of type {}, type_def: {:?}",
                 to_encode,
-                to_encode.getattr(py, "__class__").unwrap_or(py.None())
+                to_encode.getattr(py, "__class__").unwrap_or(py.None()),
+                ty.type_def
             )));
         }
     }
@@ -1058,6 +1076,9 @@ mod bt_decode {
         portable_registry: &PyPortableRegistry,
         to_encode: Py<PyAny>,
     ) -> PyResult<Vec<u8>> {
+        // Initialize logging
+        pyo3_log::try_init();
+
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
 
