@@ -409,6 +409,7 @@ mod bt_decode {
     }
 
     fn value_to_pyobject(py: Python, value: Value<u32>) -> PyResult<Py<PyAny>> {
+        log::debug!(target: "btdecode", "value_to_pyobject: {:?}", value);
         match value.value {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
@@ -1062,6 +1063,9 @@ mod bt_decode {
         portable_registry: &PyPortableRegistry,
         encoded: &[u8],
     ) -> PyResult<Py<PyAny>> {
+        // Initialize logging
+        let _ = pyo3_log::try_init();
+
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
 
@@ -1071,9 +1075,12 @@ mod bt_decode {
 
         let type_id: u32 = get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry)
             .expect("Failed to get type id from type string");
+        log::debug!(target: "btdecode", "decoding type_id: {:?}", type_id);
 
         let decoded =
             decode_as_type(&mut &encoded[..], type_id, &curr_registry).expect("Failed to decode");
+
+        log::debug!(target: "btdecode", "decoded: {:?}", decoded);
 
         value_to_pyobject(py, decoded)
     }
@@ -1086,7 +1093,7 @@ mod bt_decode {
         to_encode: Py<PyAny>,
     ) -> PyResult<Vec<u8>> {
         // Initialize logging
-        pyo3_log::try_init();
+        let _ = pyo3_log::try_init();
 
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();

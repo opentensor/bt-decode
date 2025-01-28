@@ -209,8 +209,10 @@ pub fn get_type_id_from_type_string(
 ) -> Option<u32> {
     // Check if the type string is in the memo
     if let Some(idx) = memo.get(type_string) {
+        log::debug!(target: "btdecode", "type_string: {:?} is in memo", type_string);
         return Some(*idx);
     } // This handles primitive types
+    log::debug!(target: "btdecode", "type_string: {:?} is not in memo", type_string);
 
     // This means the type is NOT in the memo
     // We only handle types that are ultimately constructed from other types in the memo.
@@ -232,6 +234,7 @@ pub fn get_type_id_from_type_string(
         && type_chars.len() >= 4
         && type_chars[0..4].iter().collect::<String>() == "Vec<"
     {
+        log::debug!(target: "btdecode", "decoding Vec<T> {:?}", type_string);
         // This is a Vec<T> type, which is a sequence of one type T
         let sub_type_string = get_inner_string(type_string).trim();
         let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
@@ -253,6 +256,7 @@ pub fn get_type_id_from_type_string(
         Some(new_type_id)
     } else if type_string != "()" && type_chars[0] == '(' && type_chars[type_chars.len() - 1] == ')'
     {
+        log::debug!(target: "btdecode", "decoding tuple {:?}", type_string);
         // This is a tuple; (T1, T2, T3, ...)
         // Made of multiple sub types T1, T2, T3, possibly different
         let inner_string = get_inner_string(type_string).trim();
@@ -287,6 +291,7 @@ pub fn get_type_id_from_type_string(
     } else if type_string != "[]" && type_chars[0] == '[' && type_chars[type_chars.len() - 1] == ']'
     {
         // Is an array; [T; N] where T is in the memo
+        log::debug!(target: "btdecode", "decoding array {:?}", type_string);
         let inner_string = get_inner_string(type_string).trim();
         let semi_colon_index = inner_string.find(';')?;
         let sub_type_string = inner_string[..semi_colon_index].trim();
@@ -321,6 +326,7 @@ pub fn get_type_id_from_type_string(
         && type_chars[0..8].iter().collect::<String>() == "Compact<"
     {
         // This is a Compact<T> type, which is a compact encoding of one type T
+        log::debug!(target: "btdecode", "decoding Compact<T> {:?}", type_string);
         let sub_type_string = get_inner_string(type_string).trim();
         let sub_type_id = get_type_id_from_type_string(memo, sub_type_string, registry)?;
 
@@ -347,7 +353,7 @@ pub fn get_type_id_from_type_string(
         && type_chars[0..7].iter().collect::<String>() == "Option<"
     {
         // This is an Option<T> type, which is an enum with two variants: None and Some(T)
-
+        log::debug!(target: "btdecode", "decoding Option<T> {:?}", type_string);
         // e.g. Option<T>
         let inner_string = get_inner_string(type_string).trim();
         let sub_type_string = inner_string;
