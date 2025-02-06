@@ -313,6 +313,33 @@ mod bt_decode {
         }
     }
 
+    #[pyclass(get_all)]
+    #[derive(Decode, Encode, Clone, Debug)]
+    struct SubnetState {
+        netuid: Compact<u16>,
+        hotkeys: Vec<AccountId>,
+        coldkeys: Vec<AccountId>,
+        active: Vec<bool>,
+        validator_permit: Vec<bool>,
+        pruning_score: Vec<Compact<u16>>,
+        last_update: Vec<Compact<u64>>,
+        emission: Vec<Compact<u64>>,
+        dividends: Vec<Compact<u16>>,
+        incentives: Vec<Compact<u16>>,
+        consensus: Vec<Compact<u16>>,
+        trust: Vec<Compact<u16>>,
+        rank: Vec<Compact<u16>>,
+        block_at_registration: Vec<Compact<u64>>,
+        alpha_stake: Vec<Compact<u64>>,
+        tao_stake: Vec<Compact<u64>>,
+        total_stake: Vec<Compact<u64>>,
+        emission_history: Vec<Vec<Compact<u64>>>,
+    }
+
+    #[pydecode]
+    #[pymethods]
+    impl SubnetState {}
+
     #[pyclass(name = "MetadataV15")]
     #[derive(Clone, Encode, Decode, Debug)]
     struct PyMetadataV15 {
