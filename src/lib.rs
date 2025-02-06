@@ -1063,8 +1063,12 @@ mod bt_decode {
         let type_id: u32 = get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry)
             .expect("Failed to get type id from type string");
 
-        let decoded =
-            decode_as_type(&mut &encoded[..], type_id, &curr_registry).expect("Failed to decode");
+        let decoded = decode_as_type(&mut &encoded[..], type_id, &curr_registry).map_err(|_e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Failed to decode type: {:?} with type id: {:?}",
+                type_string, type_id
+            ))
+        })?;
 
         value_to_pyobject(py, decoded)
     }
