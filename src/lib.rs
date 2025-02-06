@@ -1084,7 +1084,7 @@ mod bt_decode {
         to_encode: Py<PyAny>,
     ) -> PyResult<Vec<u8>> {
         // Initialize logging
-        pyo3_log::try_init();
+        let _ = pyo3_log::try_init();
 
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
@@ -1094,17 +1094,29 @@ mod bt_decode {
         fill_memo_using_well_known_types(&mut memo, &curr_registry);
 
         let type_id: u32 = get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry)
-            .expect("Failed to get type id from type string");
+            .ok_or(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Failed to get type id from type string: {:?}",
+                type_string
+            )))?;
 
-        let ty = curr_registry
-            .resolve(type_id)
-            .expect(&format!("Failed to resolve type (0): {:?}", type_string));
+        let ty = curr_registry.resolve(type_id).ok_or(PyErr::new::<
+            pyo3::exceptions::PyValueError,
+            _,
+        >(format!(
+            "Failed to resolve type (0): {:?}",
+            type_string
+        )))?;
 
         let as_value: Value<u32> =
             pyobject_to_value(py, &to_encode, ty, type_id, portable_registry)?;
 
         let mut encoded: Vec<u8> = Vec::<u8>::new();
-        encode_as_type(&as_value, type_id, &curr_registry, &mut encoded).expect("Failed to encode");
+        encode_as_type(&as_value, type_id, &curr_registry, &mut encoded).map_err(|_e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Failed to encode type: {:?} with type id: {:?}",
+                type_string, type_id
+            ))
+        })?;
 
         Ok(encoded)
     }
