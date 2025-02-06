@@ -99,9 +99,6 @@ mod bt_decode {
         axon_info: AxonInfo,
         prometheus_info: PrometheusInfo,
         stake: Vec<(AccountId, Compact<u64>)>, // map of coldkey to stake on this neuron/hotkey (includes delegations)
-        total_stake: Compact<u64>,
-        alpha_stake: Compact<u64>,
-        tao_stake: Compact<u64>,
         rank: Compact<u16>,
         emission: Compact<u64>,
         incentive: Compact<u16>,
@@ -131,9 +128,6 @@ mod bt_decode {
         axon_info: AxonInfo,
         prometheus_info: PrometheusInfo,
         stake: Vec<(AccountId, Compact<u64>)>, // map of coldkey to stake on this neuron/hotkey (includes delegations)
-        total_stake: Compact<u64>,
-        alpha_stake: Compact<u64>,
-        tao_stake: Compact<u64>,
         rank: Compact<u16>,
         emission: Compact<u64>,
         incentive: Compact<u16>,
