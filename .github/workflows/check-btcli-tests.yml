@@ -192,7 +192,7 @@ jobs:
       - name: Clone bt-decode repo
         run: git clone https://github.com/opentensor/bt-decode.git
 
-      - name: Checkout PR branch in Wallet repo
+      - name: Checkout PR branch in bt-decode repo
         working-directory: ${{ github.workspace }}/bt-decode
         run: |
           git fetch origin ${{ github.event.pull_request.head.ref }}
