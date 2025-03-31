@@ -542,12 +542,10 @@ mod bt_decode {
                         Value::with_context(ValueDef::Primitive(Primitive::U128(value)), type_id);
                     Ok(value)
                 }
-                _ => {
-                    Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for u128 data: {}",
-                        value
-                    )))
-                }
+                _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for u128 data: {}",
+                    value
+                ))),
             }
         } else {
             let value = py_int.extract::<i128>(py)?;
@@ -577,12 +575,10 @@ mod bt_decode {
                         Value::with_context(ValueDef::Primitive(Primitive::I128(value)), type_id);
                     Ok(value)
                 }
-                _ => {
-                    Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid type for i128 data: {}",
-                        value
-                    )))
-                }
+                _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid type for i128 data: {}",
+                    value
+                ))),
             }
         }
     }
@@ -1067,9 +1063,9 @@ mod bt_decode {
     #[pyfunction(name = "decode_list")]
     fn py_decode_list(
         py: Python,
-        type_strings: Vec<String>,
+        list_type_strings: Vec<String>,
         portable_registry: &PyPortableRegistry,
-        encoded: Vec<Vec<u8>>,
+        list_encoded: Vec<Vec<u8>>,
     ) -> PyResult<Vec<Py<PyAny>>> {
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
@@ -1080,7 +1076,7 @@ mod bt_decode {
 
         let mut decoded_list = Vec::<Py<PyAny>>::new();
 
-        for (type_string, encoded) in type_strings.iter().zip(encoded.iter()) {
+        for (type_string, encoded) in list_type_strings.iter().zip(list_encoded.iter()) {
             let type_id: u32 =
                 get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry).ok_or(
                     PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
