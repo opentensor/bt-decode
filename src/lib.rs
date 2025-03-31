@@ -1070,6 +1070,45 @@ mod bt_decode {
         value_to_pyobject(py, decoded)
     }
 
+    #[pyfunction(name = "decode_list")]
+    fn py_decode_list(
+        py: Python,
+        type_strings: Vec<String>,
+        portable_registry: &PyPortableRegistry,
+        encoded: Vec<Vec<u8>>,
+    ) -> PyResult<Vec<Py<PyAny>>> {
+        // Create a memoization table for the type string to type id conversion
+        let mut memo = HashMap::<String, u32>::new();
+
+        let mut curr_registry = portable_registry.registry.clone();
+
+        fill_memo_using_well_known_types(&mut memo, &curr_registry);
+
+        let mut decoded_list = Vec::<Py<PyAny>>::new();
+
+        for (type_string, encoded) in type_strings.iter().zip(encoded.iter()) {
+            let type_id: u32 =
+                get_type_id_from_type_string(&mut memo, type_string, &mut curr_registry).ok_or(
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Failed to get type id from type string: {:?}",
+                        type_string
+                    )),
+                )?;
+
+            let decoded =
+                decode_as_type(&mut &encoded[..], type_id, &curr_registry).map_err(|_e| {
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Failed to decode type: {:?} with type id: {:?}",
+                        type_string, type_id
+                    ))
+                })?;
+
+            decoded_list.push(value_to_pyobject(py, decoded)?);
+        }
+
+        Ok(decoded_list)
+    }
+
     #[pyfunction(name = "encode")]
     fn py_encode(
         py: Python,
