@@ -350,6 +350,22 @@ def decode(
 ) -> Any:
     pass
 
+def decode_list(
+    list_type_strings: list[str],
+    portable_registry: PortableRegistry,
+    list_encoded: list[bytes],
+) -> list[Any]:
+    """
+    Decode a list of SCALE-encoded types using a list of their type-strings.
+
+    Note: the type-strings are potentially all different.
+    Note: the order of `list_type_strings` and `list_encoded` must match.
+
+    Returns a list of the decoded values as python objects, in the order they were
+    provided to the function.
+    """
+    pass
+
 def encode(
     type_string: str, portable_registry: PortableRegistry, to_encode: Any
 ) -> list[int]:
