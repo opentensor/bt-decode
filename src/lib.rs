@@ -41,6 +41,8 @@ mod bt_decode {
         scale::{decode_as_type, encode_as_type},
         Composite, Primitive, Value, ValueDef, Variant,
     };
+    use gear_ss58::RawSs58Address;
+    use std::convert::TryInto;
 
     use super::*;
 
@@ -372,14 +374,33 @@ mod bt_decode {
     fn composite_to_py_object(py: Python, value: Composite<u32>) -> PyResult<Py<PyAny>> {
         match value {
             Composite::Named(inner_) => {
-                let dict = PyDict::new_bound(py);
-                for (key, val) in inner_.iter() {
+            let dict = PyDict::new_bound(py);
+            for (key, val) in inner_.iter() {
+                if key == "AccountId" {
+                    if let ValueDef::Primitive(Primitive::U256(account_id_bytes)) = &val.value {
+                        let account_id_bytes_owned = *account_id_bytes;
+
+                        let raw_address = RawSs58Address::from(account_id_bytes_owned);
+                        let ss58_address_result = raw_address.to_ss58check();
+                        match ss58_address_result {
+                            Ok(ss58_address) => dict.set_item(key, ss58_address.to_string().to_object(py))?,
+                            Err(_) => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                                "SS58 encoding failed",
+                            )),
+                        }
+                    } else {
+                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                            "Unexpected type for AccountId, expected a U256 byte array",
+                        ));
+                    }
+                } else {
                     let val_py = value_to_pyobject(py, val.clone())?;
                     dict.set_item(key, val_py)?;
                 }
-
-                Ok(dict.to_object(py))
             }
+
+            Ok(dict.to_object(py))
+        }
             Composite::Unnamed(inner_) => {
                 let tuple = PyTuple::new_bound(
                     py,
