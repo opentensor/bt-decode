@@ -33,8 +33,7 @@ mod bt_decode {
     use std::collections::HashMap;
 
     use base58::ToBase58;
-    use blake2::Blake2b512;
-    use blake2::Digest;
+    use blake2::{Blake2b512, Digest};
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
     use pyo3::types::{PyDict, PyInt, PyList, PyTuple};
@@ -47,31 +46,22 @@ mod bt_decode {
 
     use super::*;
 
-    pub fn account_id_to_ss58(account_id: [u8; 32], ss58_prefix: u16) -> String {
-        let mut data = Vec::new();
-
-        // Prefix handling
-        if ss58_prefix < 64 {
-            data.push(ss58_prefix as u8);
-        } else if ss58_prefix < 16384 {
-            let first = ((ss58_prefix & 0b0011_1111) | 0b0100_0000) as u8;
-            let second = (ss58_prefix >> 6) as u8;
-            data.push(first);
-            data.push(second);
-        } else {
-            panic!("Invalid SS58 prefix");
+    fn account_id_to_ss58(account_id: [u8; 32], ss58_prefix: u16) -> String {
+        let mut data = Vec::with_capacity(35);
+        match ss58_prefix {
+            0..=63 => data.push(ss58_prefix as u8),
+            64..=16383 => {
+                data.push(((ss58_prefix & 0b0011_1111) | 0b0100_0000) as u8);
+                data.push((ss58_prefix >> 6) as u8);
+            }
+            _ => panic!("Invalid SS58 prefix"),
         }
-
-        data.extend_from_slice(&account_id);
-
-        // Now Blake2b512 has a known output size (64 bytes)
-        let mut hasher = Blake2b512::new();
-        Digest::update(&mut hasher, b"SS58PRE");
-        Digest::update(&mut hasher, &data);
-        let checksum = hasher.finalize();
-
-        data.extend_from_slice(&checksum[..2]); // SS58 checksum uses first 2 bytes
-
+        data.extend(account_id);
+        let checksum = Blake2b512::new()
+            .chain_update(b"SS58PRE")
+            .chain_update(&data)
+            .finalize();
+        data.extend_from_slice(&checksum[..2]);
         data.to_base58()
     }
 
