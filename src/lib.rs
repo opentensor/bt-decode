@@ -42,9 +42,42 @@ mod bt_decode {
         Composite, Primitive, Value, ValueDef, Variant,
     };
     use gear_ss58::RawSs58Address;
+    use gear_ss58::Ss58Address;
     use std::convert::TryInto;
+    use blake2::Blake2b512;
+    use blake2::Digest;
+    use blake2::digest::{Update, VariableOutput};
+    use base58::ToBase58;
 
     use super::*;
+
+    pub fn account_id_to_ss58(account_id: [u8; 32], ss58_prefix: u16) -> String {
+        let mut data = Vec::new();
+
+        // Prefix handling
+        if ss58_prefix < 64 {
+            data.push(ss58_prefix as u8);
+        } else if ss58_prefix < 16384 {
+            let first = ((ss58_prefix & 0b0011_1111) | 0b0100_0000) as u8;
+            let second = (ss58_prefix >> 6) as u8;
+            data.push(first);
+            data.push(second);
+        } else {
+            panic!("Invalid SS58 prefix");
+        }
+
+        data.extend_from_slice(&account_id);
+
+        // Now Blake2b512 has a known output size (64 bytes)
+        let mut hasher = Blake2b512::new();
+        Digest::update(&mut hasher, b"SS58PRE");
+        Digest::update(&mut hasher, &data);
+        let checksum = hasher.finalize();
+
+        data.extend_from_slice(&checksum[..2]); // SS58 checksum uses first 2 bytes
+
+        data.to_base58()
+    }
 
     #[pyclass(name = "AxonInfo", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -420,9 +453,25 @@ mod bt_decode {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
                     Primitive::U128(value) => value.to_object(py),
-                    Primitive::U256(value) => value.to_object(py),
+                    Primitive::U256(account_id) => {
+                        // SS58 Encoded AccountId here
+                        println!("Matched on u256");
+                        let raw_address = RawSs58Address::from(account_id.clone());
+                        let ss58_address = raw_address.to_ss58check().map_err(|_| {
+                            PyErr::new::<pyo3::exceptions::PyValueError, _>("SS58 encoding failed")
+                        })?;
+                        ss58_address.to_string().to_object(py)
+                    }
                     Primitive::I128(value) => value.to_object(py),
-                    Primitive::I256(value) => value.to_object(py),
+                    Primitive::I256(account_id) => {
+                        println!("Matched on i256");
+                        // You might need to handle I256 depending on your use-case
+                        let raw_address = RawSs58Address::from(account_id.clone());
+                        let ss58_address = raw_address.to_ss58check().map_err(|_| {
+                            PyErr::new::<pyo3::exceptions::PyValueError, _>("SS58 encoding failed")
+                        })?;
+                    ss58_address.to_string().to_object(py)
+                }
                     Primitive::Bool(value) => value.to_object(py),
                     Primitive::Char(value) => value.to_object(py),
                     Primitive::String(value) => value.to_object(py),
@@ -435,10 +484,34 @@ mod bt_decode {
 
                 Ok(value)
             }
-            ValueDef::<u32>::Composite(inner) => {
-                let value = composite_to_py_object(py, inner)?;
+            ValueDef::<u32>::Composite(composite) => match &composite {
+                Composite::Unnamed(ref inner) if inner.len() == 32 => {
+                    let mut account_id_bytes: Vec<u8> = Vec::with_capacity(32);
 
-                Ok(value)
+                    for val in inner.iter() {
+                        match val.value {
+                            ValueDef::<u32>::Primitive(Primitive::U128(byte)) => {
+                                account_id_bytes.push(byte as u8);
+                            },
+                            _ => {
+                                let value = composite_to_py_object(py, composite)?;
+                                return Ok(value);
+                            }
+                        }
+                    }
+
+                    let account_id_array: [u8; 32] = account_id_bytes
+                        .try_into()
+                        .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid AccountId length"))?;
+
+                    let ss58_address = account_id_to_ss58(account_id_array, 42);
+
+                    Ok(ss58_address.as_str().to_object(py))
+                },
+                _ => {
+                    let value = composite_to_py_object(py, composite)?;
+                    Ok(value)
+                }
             }
             ValueDef::<u32>::Variant(inner) => {
                 if inner.name == "None" || inner.name == "Some" {
