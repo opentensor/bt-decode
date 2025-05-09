@@ -32,6 +32,9 @@ mod dyndecoder;
 mod bt_decode {
     use std::collections::HashMap;
 
+    use base58::ToBase58;
+    use blake2::Blake2b512;
+    use blake2::Digest;
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
     use pyo3::types::{PyDict, PyInt, PyList, PyTuple};
@@ -41,9 +44,6 @@ mod bt_decode {
         scale::{decode_as_type, encode_as_type},
         Composite, Primitive, Value, ValueDef, Variant,
     };
-    use blake2::Blake2b512;
-    use blake2::Digest;
-    use base58::ToBase58;
 
     use super::*;
 
@@ -408,23 +408,23 @@ mod bt_decode {
                     let val_py = value_to_pyobject(py, val.clone())?;
                     dict.set_item(key, val_py)?;
                 }
-
                 Ok(dict.to_object(py))
             }
             Composite::Unnamed(inner_) => {
-                let tuple = PyTuple::new_bound(
-                    py,
-                    inner_
-                        .iter()
-                        .map(|val| value_to_pyobject(py, val.clone()))
-                        .collect::<PyResult<Vec<Py<PyAny>>>>()?,
-                );
+                let items: Vec<Py<PyAny>> = inner_
+                    .iter()
+                    .map(|val| value_to_pyobject(py, val.clone()))
+                    .collect::<PyResult<Vec<Py<PyAny>>>>()?;
 
-                Ok(tuple.to_object(py))
+                if items.len() == 1 {
+                    Ok(items[0].clone_ref(py))
+                } else {
+                    let tuple = PyTuple::new_bound(py, items);
+                    Ok(tuple.to_object(py))
+                }
             }
         }
     }
-
 
     fn value_to_pyobject(py: Python, value: Value<u32>) -> PyResult<Py<PyAny>> {
         match value.value {
@@ -454,7 +454,7 @@ mod bt_decode {
                         match val.value {
                             ValueDef::<u32>::Primitive(Primitive::U128(byte)) => {
                                 account_id_bytes.push(byte as u8);
-                            },
+                            }
                             _ => {
                                 let value = composite_to_py_object(py, composite)?;
                                 return Ok(value);
@@ -462,18 +462,18 @@ mod bt_decode {
                         }
                     }
 
-                    let account_id_array: [u8; 32] = account_id_bytes
-                        .try_into()
-                        .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid AccountId length"))?;
+                    let account_id_array: [u8; 32] = account_id_bytes.try_into().map_err(|_| {
+                        PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid AccountId length")
+                    })?;
 
                     let ss58_address = account_id_to_ss58(account_id_array, 42);
                     Ok(ss58_address.as_str().to_object(py))
-                },
+                }
                 _ => {
                     let value = composite_to_py_object(py, composite)?;
                     Ok(value)
                 }
-            }
+            },
             ValueDef::<u32>::Variant(inner) => {
                 if inner.name == "None" || inner.name == "Some" {
                     match inner.name.as_str() {
