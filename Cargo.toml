@@ -33,7 +33,5 @@ scale-value = { version = "0.16.2", default-features = false }
 pythonize = "0.23.0"
 log = { version = "0.4.25", default-features = false }
 pyo3-log = { version = "0.12.1", default-features = false }
-gear-ss58 = "1.8.0"
-hex = "0.4"
-blake2 = "0.10"   # Lightweight, modern Blake2b
-base58 = "0.2"    # Minimal base58 encoder
+blake2 = "0.10"
+base58 = "0.2"

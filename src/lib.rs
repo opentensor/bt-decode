@@ -41,12 +41,8 @@ mod bt_decode {
         scale::{decode_as_type, encode_as_type},
         Composite, Primitive, Value, ValueDef, Variant,
     };
-    use gear_ss58::RawSs58Address;
-    use gear_ss58::Ss58Address;
-    use std::convert::TryInto;
     use blake2::Blake2b512;
     use blake2::Digest;
-    use blake2::digest::{Update, VariableOutput};
     use base58::ToBase58;
 
     use super::*;
@@ -407,33 +403,14 @@ mod bt_decode {
     fn composite_to_py_object(py: Python, value: Composite<u32>) -> PyResult<Py<PyAny>> {
         match value {
             Composite::Named(inner_) => {
-            let dict = PyDict::new_bound(py);
-            for (key, val) in inner_.iter() {
-                if key == "AccountId" {
-                    if let ValueDef::Primitive(Primitive::U256(account_id_bytes)) = &val.value {
-                        let account_id_bytes_owned = *account_id_bytes;
-
-                        let raw_address = RawSs58Address::from(account_id_bytes_owned);
-                        let ss58_address_result = raw_address.to_ss58check();
-                        match ss58_address_result {
-                            Ok(ss58_address) => dict.set_item(key, ss58_address.to_string().to_object(py))?,
-                            Err(_) => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                                "SS58 encoding failed",
-                            )),
-                        }
-                    } else {
-                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                            "Unexpected type for AccountId, expected a U256 byte array",
-                        ));
-                    }
-                } else {
+                let dict = PyDict::new_bound(py);
+                for (key, val) in inner_.iter() {
                     let val_py = value_to_pyobject(py, val.clone())?;
                     dict.set_item(key, val_py)?;
                 }
-            }
 
-            Ok(dict.to_object(py))
-        }
+                Ok(dict.to_object(py))
+            }
             Composite::Unnamed(inner_) => {
                 let tuple = PyTuple::new_bound(
                     py,
@@ -448,30 +425,15 @@ mod bt_decode {
         }
     }
 
+
     fn value_to_pyobject(py: Python, value: Value<u32>) -> PyResult<Py<PyAny>> {
         match value.value {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
                     Primitive::U128(value) => value.to_object(py),
-                    Primitive::U256(account_id) => {
-                        // SS58 Encoded AccountId here
-                        println!("Matched on u256");
-                        let raw_address = RawSs58Address::from(account_id.clone());
-                        let ss58_address = raw_address.to_ss58check().map_err(|_| {
-                            PyErr::new::<pyo3::exceptions::PyValueError, _>("SS58 encoding failed")
-                        })?;
-                        ss58_address.to_string().to_object(py)
-                    }
+                    Primitive::U256(value) => value.to_object(py),
                     Primitive::I128(value) => value.to_object(py),
-                    Primitive::I256(account_id) => {
-                        println!("Matched on i256");
-                        // You might need to handle I256 depending on your use-case
-                        let raw_address = RawSs58Address::from(account_id.clone());
-                        let ss58_address = raw_address.to_ss58check().map_err(|_| {
-                            PyErr::new::<pyo3::exceptions::PyValueError, _>("SS58 encoding failed")
-                        })?;
-                    ss58_address.to_string().to_object(py)
-                }
+                    Primitive::I256(value) => value.to_object(py),
                     Primitive::Bool(value) => value.to_object(py),
                     Primitive::Char(value) => value.to_object(py),
                     Primitive::String(value) => value.to_object(py),
@@ -505,7 +467,6 @@ mod bt_decode {
                         .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid AccountId length"))?;
 
                     let ss58_address = account_id_to_ss58(account_id_array, 42);
-
                     Ok(ss58_address.as_str().to_object(py))
                 },
                 _ => {

@@ -45,12 +45,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bs58"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
-
-[[package]]
 name = "bt_decode"
 version = "0.6.0"
 dependencies = [
@@ -58,8 +52,6 @@ dependencies = [
  "blake2",
  "custom_derive",
  "frame-metadata 16.0.0",
- "gear-ss58",
- "hex",
  "log",
  "parity-scale-codec",
  "pyo3",
@@ -161,17 +153,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gear-ss58"
-version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "364fe561c839ecf5aba6a29b6b52b4f3e16432b49c184c8bd744db144256fa76"
-dependencies = [
- "blake2",
- "bs58",
- "hex",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -192,12 +173,6 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
-
-[[package]]
-name = "hex"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "impl-trait-for-tuples"
