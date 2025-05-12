@@ -409,7 +409,7 @@ mod bt_decode {
                     .iter()
                     .map(|val| value_to_pyobject(py, val.clone(), legacy_account_id))
                     .collect::<PyResult<Vec<Py<PyAny>>>>()?;
-                if inner_.len() == 1 && inner_[0].context == 1 {
+                if !legacy_account_id && inner_.len() == 1 && inner_[0].context == 1 {
                     // AccountIds are the only ones with context of 1, this will cause them to not be placed in a tuple
                     return Ok(items[0].clone_ref(py));
                 }
