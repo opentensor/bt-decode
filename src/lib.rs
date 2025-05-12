@@ -32,6 +32,8 @@ mod dyndecoder;
 mod bt_decode {
     use std::collections::HashMap;
 
+    use base58::ToBase58;
+    use blake2::{Blake2b512, Digest};
     use dyndecoder::{fill_memo_using_well_known_types, get_type_id_from_type_string};
     use frame_metadata::v15::RuntimeMetadataV15;
     use pyo3::types::{PyDict, PyInt, PyList, PyTuple};
@@ -43,6 +45,25 @@ mod bt_decode {
     };
 
     use super::*;
+
+    fn account_id_to_ss58(account_id: [u8; 32], ss58_prefix: u16) -> String {
+        let mut data = Vec::with_capacity(35);
+        match ss58_prefix {
+            0..=63 => data.push(ss58_prefix as u8),
+            64..=16383 => {
+                data.push(((ss58_prefix & 0b0011_1111) | 0b0100_0000) as u8);
+                data.push((ss58_prefix >> 6) as u8);
+            }
+            _ => panic!("Invalid SS58 prefix"),
+        }
+        data.extend(account_id);
+        let checksum = Blake2b512::new()
+            .chain_update(b"SS58PRE")
+            .chain_update(&data)
+            .finalize();
+        data.extend_from_slice(&checksum[..2]);
+        data.to_base58()
+    }
 
     #[pyclass(name = "AxonInfo", get_all)]
     #[derive(Clone, Encode, Decode)]
@@ -377,19 +398,20 @@ mod bt_decode {
                     let val_py = value_to_pyobject(py, val.clone())?;
                     dict.set_item(key, val_py)?;
                 }
-
                 Ok(dict.to_object(py))
             }
             Composite::Unnamed(inner_) => {
-                let tuple = PyTuple::new_bound(
-                    py,
-                    inner_
-                        .iter()
-                        .map(|val| value_to_pyobject(py, val.clone()))
-                        .collect::<PyResult<Vec<Py<PyAny>>>>()?,
-                );
+                let items: Vec<Py<PyAny>> = inner_
+                    .iter()
+                    .map(|val| value_to_pyobject(py, val.clone()))
+                    .collect::<PyResult<Vec<Py<PyAny>>>>()?;
 
-                Ok(tuple.to_object(py))
+                if items.len() == 1 {
+                    Ok(items[0].clone_ref(py))
+                } else {
+                    let tuple = PyTuple::new_bound(py, items);
+                    Ok(tuple.to_object(py))
+                }
             }
         }
     }
@@ -414,11 +436,34 @@ mod bt_decode {
 
                 Ok(value)
             }
-            ValueDef::<u32>::Composite(inner) => {
-                let value = composite_to_py_object(py, inner)?;
+            ValueDef::<u32>::Composite(composite) => match &composite {
+                Composite::Unnamed(ref inner) if inner.len() == 32 => {
+                    let mut account_id_bytes: Vec<u8> = Vec::with_capacity(32);
 
-                Ok(value)
-            }
+                    for val in inner.iter() {
+                        match val.value {
+                            ValueDef::<u32>::Primitive(Primitive::U128(byte)) => {
+                                account_id_bytes.push(byte as u8);
+                            }
+                            _ => {
+                                let value = composite_to_py_object(py, composite)?;
+                                return Ok(value);
+                            }
+                        }
+                    }
+
+                    let account_id_array: [u8; 32] = account_id_bytes.try_into().map_err(|_| {
+                        PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid AccountId length")
+                    })?;
+
+                    let ss58_address = account_id_to_ss58(account_id_array, 42);
+                    Ok(ss58_address.as_str().to_object(py))
+                }
+                _ => {
+                    let value = composite_to_py_object(py, composite)?;
+                    Ok(value)
+                }
+            },
             ValueDef::<u32>::Variant(inner) => {
                 if inner.name == "None" || inner.name == "Some" {
                     match inner.name.as_str() {
