@@ -406,12 +406,8 @@ mod bt_decode {
                     .map(|val| value_to_pyobject(py, val.clone()))
                     .collect::<PyResult<Vec<Py<PyAny>>>>()?;
 
-                if items.len() == 1 {
-                    Ok(items[0].clone_ref(py))
-                } else {
-                    let tuple = PyTuple::new_bound(py, items);
-                    Ok(tuple.to_object(py))
-                }
+                let tuple = PyTuple::new_bound(py, items);
+                Ok(tuple.to_object(py))
             }
         }
     }
