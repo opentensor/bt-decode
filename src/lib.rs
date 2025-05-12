@@ -390,12 +390,16 @@ mod bt_decode {
         }
     }
 
-    fn composite_to_py_object(py: Python, value: Composite<u32>) -> PyResult<Py<PyAny>> {
+    fn composite_to_py_object(
+        py: Python,
+        value: Composite<u32>,
+        legacy_account_id: bool,
+    ) -> PyResult<Py<PyAny>> {
         match value {
             Composite::Named(inner_) => {
                 let dict = PyDict::new_bound(py);
                 for (key, val) in inner_.iter() {
-                    let val_py = value_to_pyobject(py, val.clone())?;
+                    let val_py = value_to_pyobject(py, val.clone(), legacy_account_id)?;
                     dict.set_item(key, val_py)?;
                 }
                 Ok(dict.to_object(py))
@@ -403,20 +407,23 @@ mod bt_decode {
             Composite::Unnamed(inner_) => {
                 let items: Vec<Py<PyAny>> = inner_
                     .iter()
-                    .map(|val| value_to_pyobject(py, val.clone()))
+                    .map(|val| value_to_pyobject(py, val.clone(), legacy_account_id))
                     .collect::<PyResult<Vec<Py<PyAny>>>>()?;
-
-                if items.len() == 1 {
-                    Ok(items[0].clone_ref(py))
-                } else {
-                    let tuple = PyTuple::new_bound(py, items);
-                    Ok(tuple.to_object(py))
+                if !legacy_account_id && inner_.len() == 1 && inner_[0].context == 1 {
+                    // AccountIds are the only ones with context of 1, this will cause them to not be placed in a tuple
+                    return Ok(items[0].clone_ref(py));
                 }
+                let tuple = PyTuple::new_bound(py, items);
+                Ok(tuple.to_object(py))
             }
         }
     }
 
-    fn value_to_pyobject(py: Python, value: Value<u32>) -> PyResult<Py<PyAny>> {
+    fn value_to_pyobject(
+        py: Python,
+        value: Value<u32>,
+        legacy_account_id: bool,
+    ) -> PyResult<Py<PyAny>> {
         match value.value {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
@@ -436,40 +443,58 @@ mod bt_decode {
 
                 Ok(value)
             }
-            ValueDef::<u32>::Composite(composite) => match &composite {
-                Composite::Unnamed(ref inner) if inner.len() == 32 => {
-                    let mut account_id_bytes: Vec<u8> = Vec::with_capacity(32);
+            ValueDef::<u32>::Composite(composite) => {
+                if legacy_account_id {
+                    let value = composite_to_py_object(py, composite, legacy_account_id)?;
+                    return Ok(value);
+                } else {
+                    match &composite {
+                        Composite::Unnamed(ref inner) if inner.len() == 32 => {
+                            let mut account_id_bytes: Vec<u8> = Vec::with_capacity(32);
 
-                    for val in inner.iter() {
-                        match val.value {
-                            ValueDef::<u32>::Primitive(Primitive::U128(byte)) => {
-                                account_id_bytes.push(byte as u8);
+                            for val in inner.iter() {
+                                match val.value {
+                                    ValueDef::<u32>::Primitive(Primitive::U128(byte)) => {
+                                        account_id_bytes.push(byte as u8);
+                                    }
+                                    _ => {
+                                        let value = composite_to_py_object(
+                                            py,
+                                            composite,
+                                            legacy_account_id,
+                                        )?;
+                                        return Ok(value);
+                                    }
+                                }
                             }
-                            _ => {
-                                let value = composite_to_py_object(py, composite)?;
-                                return Ok(value);
-                            }
+
+                            let account_id_array: [u8; 32] =
+                                account_id_bytes.try_into().map_err(|_| {
+                                    PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                                        "Invalid AccountId length",
+                                    )
+                                })?;
+
+                            let ss58_address = account_id_to_ss58(account_id_array, 42);
+                            Ok(ss58_address.as_str().to_object(py))
+                        }
+                        _ => {
+                            let value = composite_to_py_object(py, composite, legacy_account_id)?;
+                            Ok(value)
                         }
                     }
-
-                    let account_id_array: [u8; 32] = account_id_bytes.try_into().map_err(|_| {
-                        PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid AccountId length")
-                    })?;
-
-                    let ss58_address = account_id_to_ss58(account_id_array, 42);
-                    Ok(ss58_address.as_str().to_object(py))
                 }
-                _ => {
-                    let value = composite_to_py_object(py, composite)?;
-                    Ok(value)
-                }
-            },
+            }
             ValueDef::<u32>::Variant(inner) => {
                 if inner.name == "None" || inner.name == "Some" {
                     match inner.name.as_str() {
                         "None" => Ok(py.None()),
                         "Some" => {
-                            let some = composite_to_py_object(py, inner.values.clone())?;
+                            let some = composite_to_py_object(
+                                py,
+                                inner.values.clone(),
+                                legacy_account_id,
+                            )?;
                             if inner.values.len() == 1 {
                                 let tuple = some
                                     .downcast_bound::<PyTuple>(py)
@@ -491,7 +516,7 @@ mod bt_decode {
                     let value = PyDict::new_bound(py);
                     value.set_item(
                         inner.name.clone(),
-                        composite_to_py_object(py, inner.values)?,
+                        composite_to_py_object(py, inner.values, legacy_account_id)?,
                     )?;
 
                     Ok(value.to_object(py))
@@ -1075,12 +1100,13 @@ mod bt_decode {
         pyobject_to_value_no_option_check(py, to_encode, ty, type_id, portable_registry)
     }
 
-    #[pyfunction(name = "decode")]
+    #[pyfunction(name = "decode", signature = (type_string, portable_registry, encoded, legacy_account_id=true))]
     fn py_decode(
         py: Python,
         type_string: &str,
         portable_registry: &PyPortableRegistry,
         encoded: &[u8],
+        legacy_account_id: bool,
     ) -> PyResult<Py<PyAny>> {
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
@@ -1102,15 +1128,16 @@ mod bt_decode {
             ))
         })?;
 
-        value_to_pyobject(py, decoded)
+        value_to_pyobject(py, decoded, legacy_account_id)
     }
 
-    #[pyfunction(name = "decode_list")]
+    #[pyfunction(name = "decode_list", signature = (list_type_strings, portable_registry, list_encoded, legacy_account_id=true))]
     fn py_decode_list(
         py: Python,
         list_type_strings: Vec<String>,
         portable_registry: &PyPortableRegistry,
         list_encoded: Vec<Vec<u8>>,
+        legacy_account_id: bool,
     ) -> PyResult<Vec<Py<PyAny>>> {
         // Create a memoization table for the type string to type id conversion
         let mut memo = HashMap::<String, u32>::new();
@@ -1138,7 +1165,7 @@ mod bt_decode {
                     ))
                 })?;
 
-            decoded_list.push(value_to_pyobject(py, decoded)?);
+            decoded_list.push(value_to_pyobject(py, decoded, legacy_account_id)?);
         }
 
         Ok(decoded_list)

@@ -346,7 +346,10 @@ class PortableRegistry:
         pass
 
 def decode(
-    type_string: str, portable_registry: PortableRegistry, encoded: bytes
+    type_string: str,
+    portable_registry: PortableRegistry,
+    encoded: bytes,
+    legacy_account_id: bool = True,
 ) -> Any:
     pass
 
@@ -354,6 +357,7 @@ def decode_list(
     list_type_strings: list[str],
     portable_registry: PortableRegistry,
     list_encoded: list[bytes],
+    legacy_account_id: bool = True,
 ) -> list[Any]:
     """
     Decode a list of SCALE-encoded types using a list of their type-strings.
