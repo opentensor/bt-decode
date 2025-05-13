@@ -41,7 +41,7 @@ build-backend = "maturin"
 [project.optional-dependencies]
 dev = ["black==23.7.0","maturin", "ruff==0.4.7"]
 test = [
-    "bittensor==7.3.1",
+    "bittensor==9.5.0",
     "pytest==7.2.0",
     "pytest-asyncio==0.23.7",
     "pytest-mock==3.12.0",
