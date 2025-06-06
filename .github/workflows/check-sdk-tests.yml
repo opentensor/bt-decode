@@ -249,7 +249,6 @@ jobs:
           git fetch origin staging
           python3 -m pip install --upgrade pip
           python3 -m pip install '.[dev]'
-          python3 -m pip install -r requirements/torch.txt
           python3 -m pip install maturin
 
       - name: Clone Bittensor bt-decode repo
