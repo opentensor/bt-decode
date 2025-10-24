@@ -2,21 +2,27 @@ use codec::{Decode, Encode};
 use custom_derive::pydecode;
 use frame_metadata::{RuntimeMetadata, RuntimeMetadataPrefixed};
 use log;
+use std::ffi::CString;
 
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 
 // Implements ToPyObject for Compact<T> where T is an unsigned integer.
 macro_rules! impl_UnsignedCompactIntoPy {
-    ( $($type:ty),* $(,)? ) => {
+    ($($type:ty),+) => {
         $(
-            impl IntoPy<PyObject> for Compact<$type> {
-                fn into_py(self, py: Python<'_>) -> PyObject {
-                    let value: $type = self.0.into();
+            impl<'py> IntoPyObject<'py> for Compact<$type> {
+                type Target = PyAny;
+                type Output = Bound<'py, Self::Target>;
+                type Error = PyErr;
 
-                    value.into_py(py)
+                fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+                    // Compact<T> wraps codec::Compact<T> in .0, extract inner value
+                    let inner_value: $type = self.0.0;
+                    Ok(inner_value.into_pyobject(py)?.into_any())
                 }
             }
-        )*
+        )+
     };
 }
 
@@ -372,7 +378,7 @@ mod bt_decode {
     fn composite_to_py_object(py: Python, value: Composite<u32>) -> PyResult<Py<PyAny>> {
         match value {
             Composite::Named(inner_) => {
-                let dict = PyDict::new_bound(py);
+                let dict = PyDict::new(py);
                 for (key, val) in inner_.iter() {
                     let val_py = value_to_pyobject(py, val.clone())?;
                     dict.set_item(key, val_py)?;
@@ -381,15 +387,15 @@ mod bt_decode {
                 Ok(dict.to_object(py))
             }
             Composite::Unnamed(inner_) => {
-                let tuple = PyTuple::new_bound(
+                let tuple = PyTuple::new(
                     py,
                     inner_
                         .iter()
                         .map(|val| value_to_pyobject(py, val.clone()))
-                        .collect::<PyResult<Vec<Py<PyAny>>>>()?,
+                        .collect::<PyResult<Vec<Bound<'py, PyAny>>>>()?,
                 );
 
-                Ok(tuple.to_object(py))
+                Ok(tuple.unwrap().into_any())
             }
         }
     }
@@ -398,19 +404,22 @@ mod bt_decode {
         match value.value {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
-                    Primitive::U128(value) => value.to_object(py),
-                    Primitive::U256(value) => value.to_object(py),
-                    Primitive::I128(value) => value.to_object(py),
-                    Primitive::I256(value) => value.to_object(py),
-                    Primitive::Bool(value) => value.to_object(py),
-                    Primitive::Char(value) => value.to_object(py),
-                    Primitive::String(value) => value.to_object(py),
+                    Primitive::U128(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::U256(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::I128(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::I256(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::Bool(value) => {
+                        let bound = value.into_pyobject(py)?;
+                        Bound::clone(&bound).into_any().unbind()
+                    }
+                    Primitive::Char(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::String(value) => value.into_pyobject(py)?.into_any().unbind(),
                 };
 
                 Ok(value)
             }
             ValueDef::<u32>::BitSequence(inner) => {
-                let value = inner.to_vec().to_object(py);
+                let value = inner.to_vec().into_pyobject(py)?.into_any().unbind();
 
                 Ok(value)
             }
@@ -432,9 +441,9 @@ mod bt_decode {
                                 Ok(tuple
                                     .get_item(0)
                                     .expect("Failed to get item from tuple")
-                                    .to_object(py))
+                                    .unbind())
                             } else {
-                                Ok(some.to_object(py))
+                                Ok(some.into_pyobject(py)?.into_any().unbind())
                             }
                         }
                         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -443,28 +452,25 @@ mod bt_decode {
                         ))),
                     }
                 } else {
-                    let value = PyDict::new_bound(py);
+                    let value = PyDict::new(py);
                     value.set_item(
                         inner.name.clone(),
                         composite_to_py_object(py, inner.values)?,
                     )?;
 
-                    Ok(value.to_object(py))
+                    Ok(value.into_pyobject(py)?.into_any().unbind())
                 }
             }
         }
     }
 
     fn py_isinstance(py: Python, value: &Py<PyAny>, type_name: &str) -> PyResult<bool> {
-        let locals = PyDict::new_bound(py);
+        let locals = PyDict::new(py);
         locals.set_item("value", value)?;
 
-        py.run_bound(
-            &format!("ret = isinstance(value, {})", type_name),
-            None,
-            Some(&locals),
-        )
-        .map_err(|e| {
+        let code = CString::new(format!("ret = isinstance(value, {})", type_name))
+            .expect("CString conversion failed");
+        py.run(&code, None, Some(&locals)).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                 "Error checking isinstance of: {}: {:?}",
                 type_name, e
@@ -477,11 +483,10 @@ mod bt_decode {
     }
 
     fn py_is_positive(py: Python, value: &Py<PyInt>) -> PyResult<bool> {
-        let locals = PyDict::new_bound(py);
+        let locals = PyDict::new(py);
         locals.set_item("value", value)?;
 
-        py.run_bound("ret = value >= 0", None, Some(&locals))
-            .unwrap();
+        py.run(c"ret = value >= 0", None, Some(&locals))?;
         let ret = locals.get_item("ret").unwrap().unwrap();
         let result = ret.extract::<bool>()?;
 
@@ -489,11 +494,10 @@ mod bt_decode {
     }
 
     fn py_has_dict_method(py: Python, value: &Py<PyAny>) -> PyResult<bool> {
-        let locals = PyDict::new_bound(py);
+        let locals = PyDict::new(py);
         locals.set_item("value", value)?;
 
-        py.run_bound("ret = hasattr(value, \'__dict__\')", None, Some(&locals))
-            .unwrap();
+        py.run(c"ret = hasattr(value, '__dict__')", None, Some(&locals))?;
         let ret = locals.get_item("ret").unwrap().unwrap();
         let result = ret.extract::<bool>()?;
 
