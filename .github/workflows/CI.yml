@@ -39,10 +39,10 @@ jobs:
           python-version: "3.10"
 
       - name: Build wheels
-        uses: PyO3/maturin-action@v1.44.0
+        uses: PyO3/maturin-action@v1.49.4
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter python3.9 python3.10 python3.11 python3.12 python3.13
+          args: --release --out dist --interpreter python3.9 python3.10 python3.11 python3.12 python3.13 python3.14
           sccache: 'true'
           manylinux: auto
           before-script-linux: |
@@ -76,10 +76,10 @@ jobs:
           architecture: ${{ matrix.platform.target }}
 
       - name: Build wheels
-        uses: PyO3/maturin-action@v1.44.0
+        uses: PyO3/maturin-action@v1.49.4
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter python3.9 python3.10 python3.11 python3.12 python3.13
+          args: --release --out dist --interpreter python3.9 python3.10 python3.11 python3.12 python3.13 python3.14
           sccache: 'true'
 
       - name: Upload wheels
@@ -104,10 +104,10 @@ jobs:
           python-version: "3.10"
 
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.49.4
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter python3.9 python3.10 python3.11 python3.12 python3.13
+          args: --release --out dist --interpreter python3.9 python3.10 python3.11 python3.12 python3.13 python3.14
           sccache: 'true'
 
       - name: Upload wheels
@@ -121,7 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build sdist
-        uses: PyO3/maturin-action@v1.44.0
+        uses: PyO3/maturin-action@v1.49.4
         with:
           command: sdist
           args: --out dist
@@ -154,7 +154,7 @@ jobs:
           subject-path: 'wheels-*/*'
 
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.49.4
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
