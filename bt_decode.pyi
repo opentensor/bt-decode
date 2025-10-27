@@ -306,13 +306,24 @@ class MetadataV15:
 
     @staticmethod
     def decode_from_metadata_option(encoded_metadata_v15: bytes) -> "MetadataV15":
+        """
+        Decodes to Option<Vec<u8>>, then decodes to MetadataPrefixed and returns MetadataV15.
+        """
         pass
+
     def to_json(self) -> str:
         """
         Returns a JSON representation of the metadata.
         """
         pass
+
     def value(self) -> Dict[str, Any]:
+        pass
+
+    def encode_to_metadata_option(self) -> bytes:
+        """
+        MetadataV15 -> MetadataPrefixed -> encoded bytes as an Option<Vec<u8>>
+        """
         pass
 
 class PortableRegistry:
