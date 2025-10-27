@@ -375,7 +375,10 @@ mod bt_decode {
         }
     }
 
-    fn composite_to_py_object(py: Python, value: Composite<u32>) -> PyResult<Py<PyAny>> {
+    fn composite_to_py_object<'py>(
+        py: Python<'py>,
+        value: Composite<u32>,
+    ) -> PyResult<Bound<'py, PyAny>> {
         match value {
             Composite::Named(inner_) => {
                 let dict = PyDict::new(py);
@@ -384,7 +387,7 @@ mod bt_decode {
                     dict.set_item(key, val_py)?;
                 }
 
-                Ok(dict.to_object(py))
+                Ok(dict.into_pyobject(py)?.into_any())
             }
             Composite::Unnamed(inner_) => {
                 let tuple = PyTuple::new(
@@ -400,26 +403,29 @@ mod bt_decode {
         }
     }
 
-    fn value_to_pyobject(py: Python, value: Value<u32>) -> PyResult<Py<PyAny>> {
+    fn value_to_pyobject<'py>(
+        py: Python<'py>,
+        value: Value<u32>,
+    ) -> PyResult<Bound<'py, PyAny>> {
         match value.value {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
-                    Primitive::U128(value) => value.into_pyobject(py)?.into_any().unbind(),
-                    Primitive::U256(value) => value.into_pyobject(py)?.into_any().unbind(),
-                    Primitive::I128(value) => value.into_pyobject(py)?.into_any().unbind(),
-                    Primitive::I256(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::U128(value) => value.into_pyobject(py)?.into_any(),
+                    Primitive::U256(value) => value.into_pyobject(py)?.into_any(),
+                    Primitive::I128(value) => value.into_pyobject(py)?.into_any(),
+                    Primitive::I256(value) => value.into_pyobject(py)?.into_any(),
                     Primitive::Bool(value) => {
                         let bound = value.into_pyobject(py)?;
-                        Bound::clone(&bound).into_any().unbind()
+                        Bound::clone(&bound).into_any()
                     }
-                    Primitive::Char(value) => value.into_pyobject(py)?.into_any().unbind(),
-                    Primitive::String(value) => value.into_pyobject(py)?.into_any().unbind(),
+                    Primitive::Char(value) => value.into_pyobject(py)?.into_any(),
+                    Primitive::String(value) => value.into_pyobject(py)?.into_any(),
                 };
 
                 Ok(value)
             }
             ValueDef::<u32>::BitSequence(inner) => {
-                let value = inner.to_vec().into_pyobject(py)?.into_any().unbind();
+                let value = inner.to_vec().into_pyobject(py)?.into_any();
 
                 Ok(value)
             }
@@ -431,19 +437,16 @@ mod bt_decode {
             ValueDef::<u32>::Variant(inner) => {
                 if inner.name == "None" || inner.name == "Some" {
                     match inner.name.as_str() {
-                        "None" => Ok(py.None()),
+                        "None" => Ok(py.None().into_bound(py)),
                         "Some" => {
                             let some = composite_to_py_object(py, inner.values.clone())?;
                             if inner.values.len() == 1 {
                                 let tuple = some
-                                    .downcast_bound::<PyTuple>(py)
+                                    .downcast::<PyTuple>()
                                     .expect("Failed to downcast back to a tuple");
-                                Ok(tuple
-                                    .get_item(0)
-                                    .expect("Failed to get item from tuple")
-                                    .unbind())
+                                Ok(tuple.get_item(0).expect("Failed to get item from tuple"))
                             } else {
-                                Ok(some.into_pyobject(py)?.into_any().unbind())
+                                Ok(some.into_pyobject(py)?.into_any())
                             }
                         }
                         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -458,7 +461,7 @@ mod bt_decode {
                         composite_to_py_object(py, inner.values)?,
                     )?;
 
-                    Ok(value.into_pyobject(py)?.into_any().unbind())
+                    Ok(value.into_pyobject(py)?.into_any())
                 }
             }
         }
@@ -1061,7 +1064,7 @@ mod bt_decode {
             ))
         })?;
 
-        value_to_pyobject(py, decoded)
+        value_to_pyobject(py, decoded).map(|value| value.unbind())
     }
 
     #[pyfunction(name = "decode_list")]
@@ -1097,7 +1100,9 @@ mod bt_decode {
                     ))
                 })?;
 
-            decoded_list.push(value_to_pyobject(py, decoded)?);
+            decoded_list.push(
+                value_to_pyobject(py, decoded).map(|value| value.unbind())?,
+            );
         }
 
         Ok(decoded_list)
