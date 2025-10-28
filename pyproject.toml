@@ -6,7 +6,7 @@ readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["substrate", "scale", "codec", "bittensor"]
 
-dependencies = ["toml==0.10.0"]
+dependencies = ["toml>=0.10.0"]
 requires-python = ">= 3.9"
 
 authors = [

@@ -13,23 +13,31 @@ name = "bt_decode"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
-version = "0.23.3"
-features = ["extension-module"]
+version = "0.26.0"
+features = ["extension-module", "generate-import-lib"]
 
 [dependencies.custom_derive]
 path = "libs/custom-derive"
 
 [dependencies]
-frame-metadata = { version = "16.0.0", features = [ "current", "decode", "serde_full" ], default-features = false }
-scale-decode = { version = "0.13.0", default-features = false }
+frame-metadata = { version = "16.0.0", features = [
+	"current",
+	"decode",
+	"serde_full",
+], default-features = false }
 
 codec = { package = "parity-scale-codec", version = "3.2.2", default-features = false, features = [
 	"derive",
 ] }
-scale-info = { version = "2.11.2", features = [ "serde" ], default-features = false }
-serde_json = { version = "1.0.127", features = [ "alloc" ], default-features = false }
-scale-bits = { version = "0.4.0", default-features = false }
+scale-info = { version = "2.11.2", features = [
+	"serde",
+], default-features = false }
+serde_json = { version = "1.0.127", features = [
+	"alloc",
+], default-features = false }
 scale-value = { version = "0.16.2", default-features = false }
-pythonize = "0.23.0"
+pythonize = "0.26.0"
 log = { version = "0.4.25", default-features = false }
-pyo3-log = { version = "0.12.1", default-features = false }
+pyo3-log = { version = "0.13.1", default-features = false }
+blake2 = "0.10"
+base58 = "0.2"
