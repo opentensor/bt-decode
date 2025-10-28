@@ -325,6 +325,12 @@ mod bt_decode {
             serde_json::to_string(&self.metadata).unwrap()
         }
 
+        fn encode_to_metadata_option(&self) -> Vec<u8> {
+            let as_prefixed = RuntimeMetadataPrefixed::from(self.metadata.clone());
+            let as_option = Some(as_prefixed.encode());
+            as_option.encode()
+        }
+
         #[staticmethod]
         fn decode_from_metadata_option(encoded_metadata_v15: &[u8]) -> Self {
             let option_vec = Option::<Vec<u8>>::decode(&mut &encoded_metadata_v15[..])
