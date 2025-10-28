@@ -7,3 +7,5 @@ target
 __pycache__
 # IDE
 .vscode
+
+Cargo.lock
