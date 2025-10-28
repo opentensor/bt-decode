@@ -403,10 +403,7 @@ mod bt_decode {
         }
     }
 
-    fn value_to_pyobject<'py>(
-        py: Python<'py>,
-        value: Value<u32>,
-    ) -> PyResult<Bound<'py, PyAny>> {
+    fn value_to_pyobject<'py>(py: Python<'py>, value: Value<u32>) -> PyResult<Bound<'py, PyAny>> {
         match value.value {
             ValueDef::<u32>::Primitive(inner) => {
                 let value = match inner {
